@@ -1,0 +1,10 @@
+# Ignore environment files
+.env
+
+# Ignore node modules
+node_modules/
+
+# (Optional) Ignore package-lock but not package.json
+# package.json is usually committed!
+# But if you want to ignore it (not recommended), you can do this:
+# package.json

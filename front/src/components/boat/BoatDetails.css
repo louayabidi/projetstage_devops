@@ -1,0 +1,87 @@
+.boat-details-container {
+  max-width: 1200px;
+}
+
+.boat-gallery {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.boat-gallery .image-gallery-slide img {
+  height: 500px;
+  object-fit: cover;
+}
+
+.boat-gallery .image-gallery-thumbnail img {
+  height: 80px;
+  object-fit: cover;
+}
+
+.boat-title {
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+.verified-badge {
+  display: inline-flex;
+  align-items: center;
+  background-color: #e3f2fd;
+  color: #1976d2;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.price-section {
+  background-color: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.amenity-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.boat-tabs .nav-tabs {
+  border-bottom: 2px solid #dee2e6;
+}
+
+.boat-tabs .nav-link {
+  color: #495057;
+  border: none;
+  padding: 12px 20px;
+  font-weight: 500;
+}
+
+.boat-tabs .nav-link.active {
+  color: #0d6efd;
+  background-color: transparent;
+  border-bottom: 2px solid #0d6efd;
+}
+
+.no-image-placeholder {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 40px;
+  text-align: center;
+}
+
+.avatar-placeholder {
+  width: 50px;
+  height: 50px;
+  background-color: #f8f9fa;
+}
+
+@media (max-width: 992px) {
+  .boat-gallery .image-gallery-slide img {
+    height: 400px;
+  }
+}
+
+@media (max-width: 768px) {
+  .boat-gallery .image-gallery-slide img {
+    height: 300px;
+  }
+}

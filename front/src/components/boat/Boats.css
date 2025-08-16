@@ -1,0 +1,166 @@
+/* Boats.css */
+.boats-container {
+  max-width: 1200px; /* Adjusted for two cards per row */
+  margin: 0 auto;
+  padding: 0 15px;
+}
+
+.boat-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  background-color: #fff;
+  display: flex;
+  flex-direction: column;
+  max-width: 100%; /* Ensure cards don't exceed column width */
+}
+
+.boat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.image-container {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 16 / 9; /* Consistent image aspect ratio */
+  max-height: 200px; /* Limit image height to reduce card size */
+}
+
+.boat-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.no-image-placeholder {
+  width: 100%;
+  height: 100%;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f8f9fa;
+}
+
+.verified-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: #28a745;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  z-index: 1;
+}
+
+.boat-name {
+  font-size: 1.1rem; /* Reduced font size for better fit */
+  font-weight: 600;
+  max-width: 80%;
+}
+
+.boat-details .detail-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.amenities-section {
+  margin-top: auto;
+}
+
+.amenities-list .badge {
+  font-size: 0.75rem; /* Reduced badge size */
+  padding: 4px 8px;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+}
+
+.search-filter {
+  background-color: #f8f9fa;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+}
+
+.search-box,
+.filter-select {
+  position: relative;
+}
+
+.search-icon,
+.filter-icon {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%);
+  font-size: 1.1rem;
+}
+
+.search-box input,
+.filter-select select {
+  border-radius: 8px;
+  border: 1px solid #007bff;
+  transition: border-color 0.3s ease;
+}
+
+.search-box input:focus,
+.filter-select select:focus {
+  border-color: #0056b3;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* Responsive adjustments */
+@media (max-width: 767px) {
+  .boat-card {
+    margin-bottom: 1.5rem;
+  }
+
+  .boat-name {
+    font-size: 1rem;
+  }
+
+  .boat-image {
+    min-height: 150px;
+  }
+
+  .search-box input,
+  .filter-select select {
+    font-size: 0.9rem;
+  }
+
+  .amenities-list .badge {
+    font-size: 0.7rem;
+  }
+
+  .boat-card .btn {
+    font-size: 0.9rem;
+    padding: 8px;
+  }
+}
+
+@media (min-width: 768px) {
+  .boats-container {
+    padding: 0 20px;
+  }
+
+  .boat-image {
+    min-height: 180px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .boats-container {
+    padding: 0 30px;
+  }
+
+  .boat-image {
+    min-height: 200px;
+  }
+}

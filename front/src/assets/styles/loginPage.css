@@ -1,0 +1,54 @@
+/* src/styles/loginPage.css */
+
+.login-page-container {
+    display: flex;
+    height: 100vh;
+  }
+  
+  .login-left {
+    width: 50%;
+    position: relative;
+  }
+  
+  .login-right {
+    width: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #f0f0f0;
+  }
+  
+  .login-right-container {
+    width: 80%;
+  }
+  
+  .login-logo img {
+    max-width: 100px;
+  }
+  
+  .login-center {
+    padding: 20px;
+  }
+  
+  .login-center h2 {
+    font-size: 2rem;
+  }
+  
+  .pass-input-div {
+    display: flex;
+    align-items: center;
+  }
+  
+  .login-center-buttons button {
+    margin-top: 20px;
+  }
+  
+  .login-bottom-p {
+    text-align: center;
+    margin-top: 20px;
+  }
+  
+  .forgot-pass-link {
+    font-size: 14px;
+  }
+  

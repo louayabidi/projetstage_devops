@@ -35,7 +35,18 @@ router.patch('/me',
   updateCurrentUser
 );
 
-
+// Add this to your userRouter.js
+router.get('/test', 
+  passport.authenticate('jwt', { session: false }),
+  (req, res) => {
+    console.log('Test endpoint - User authenticated:', req.user);
+    res.json({ 
+      success: true, 
+      message: 'JWT authentication working',
+      user: req.user 
+    });
+  }
+);
 
 
 router.get('/boat-owners', 

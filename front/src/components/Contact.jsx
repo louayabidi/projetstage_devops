@@ -28,7 +28,7 @@ const Contact = () => {
     }
   });
 
- 
+const API_URL = "/api";
     const navigate = useNavigate();
   const [profileImage, setProfileImage] = useState(null);
   const [profileImagePreview, setProfileImagePreview] = useState(null);
@@ -81,9 +81,10 @@ const Contact = () => {
     const formDataImage = new FormData();
     formDataImage.append("image", profileImage);
 
-    try {
-      const response = await axios.post("http://localhost:3000/api/auth/upload-profile-image", formDataImage, {
-        headers: { "Content-Type": "multipart/form-data" },
+  
+      try {
+    const response = await axios.post(`${API_URL}/auth/upload-profile-image`, formDataImage, {
+      headers: { "Content-Type": "multipart/form-data" },
       });
 
       if (response.data.success) {
@@ -112,7 +113,9 @@ const handleSubmit = async (e) => {
   };
 
   try {
-    const response = await axios.post("http://localhost:3000/api/auth/signup", submitData);
+    const response = await axios.post("/api/auth/signup", submitData);
+
+
     
     // Store token and user data
     localStorage.setItem('token', response.data.token);

@@ -12,7 +12,7 @@ function BoatOwnerDetail() {
     const fetchDetails = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await axios.get(`http://localhost:3000/api/auth/users/${id}/details`, {
+        const res = await axios.get(`/api/auth/users/${id}/details`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setUser(res.data.user);

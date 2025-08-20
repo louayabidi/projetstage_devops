@@ -28,7 +28,7 @@ const Login = () => {
     event.preventDefault();
     try {
       console.log("Sending login request with:", formData);
-      const response = await axios.post("http://localhost:3000/api/auth/signin", formData, { withCredentials: true });
+      const response = await axios.post("/api/auth/signin", formData, { withCredentials: true });
       console.log("Login successful - Response:", response.data);
 
       localStorage.setItem("token", response.data.token);
@@ -52,11 +52,11 @@ const Login = () => {
   };
 
   const handleFacebookLogin = () => {
-    window.location.href = "http://localhost:3000/api/auth/facebook";
+    window.location.href = "/api/auth/facebook";
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = "http://localhost:3000/api/auth/google";
+    window.location.href = "/api/auth/google";
   };
 
   return (

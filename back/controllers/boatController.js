@@ -1,17 +1,17 @@
 const Boat = require('../models/boat');
-const User  = require('../models/usersModel');
+const User = require('../models/usersModel');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-const uploadDir = path.join(__dirname, '../uploads/boats');
+const uploadDir = path.join(__dirname, '../Uploads/boats');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/boats/');
+    cb(null, 'Uploads/boats/');
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -35,7 +35,7 @@ const upload = multer({
 
 exports.createBoat = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user._id; // Use _id
     const { name, amenities, photos, boatType, boatCapacity, boatLicense } = req.body;
 
     if (!name || !boatType || !boatCapacity || !boatLicense) {
@@ -63,7 +63,7 @@ exports.createBoat = async (req, res) => {
       );
     } else {
       boat = new Boat({
-        owner: userId, // Fixed to use userId instead of savedUser.userId
+        owner: userId,
         name,
         boatType,
         boatCapacity,
@@ -123,8 +123,8 @@ exports.getBoatLocations = async (req, res) => {
   try {
     const boats = await Boat.find()
       .select('name location boatType boatCapacity')
-      .populate('owner', 'firstName lastName'); // Populate owner details
-    console.log('Fetched boats:', boats); // Debug log
+      .populate('owner', 'firstName lastName');
+    console.log('Fetched boats:', boats);
     res.status(200).json({ success: true, boats });
   } catch (error) {
     console.error('Fetch boat locations error:', error);
@@ -132,7 +132,6 @@ exports.getBoatLocations = async (req, res) => {
   }
 };
 
-// Read
 exports.getBoats = async (req, res) => {
   try {
     const boats = await Boat.find();
@@ -142,18 +141,15 @@ exports.getBoats = async (req, res) => {
   }
 };
 
-// Read one
-
 exports.getBoat = async (req, res) => {
   try {
     const boat = await Boat.findById(req.params.id).populate({
       path: 'owner',
-      select: 'firstName lastName avatar createdAt' // Make sure these fields exist in User model
+      select: 'firstName lastName avatar createdAt'
     });
     
     if (!boat) return res.status(404).json({ message: 'Boat not found' });
 
-    // If owner exists but doesn't have name fields, add a default
     const boatObj = boat.toObject();
     if (boatObj.owner) {
       boatObj.owner.name = boatObj.owner.firstName 
@@ -171,8 +167,7 @@ exports.completeBoatInfo = [
   upload,
   async (req, res) => {
     try {
-      console.log('Authenticated user:', req.user); // Debug log
-      
+      console.log('Authenticated user:', req.user);
       if (!req.user) {
         return res.status(401).json({ 
           success: false, 
@@ -180,10 +175,9 @@ exports.completeBoatInfo = [
         });
       }
 
-      const userId = req.user.userId; // Use userId from token
+      const userId = req.user._id; // Use _id
       const { name, boatType, boatCapacity, boatLicense } = req.body;
 
-      // Parse amenities safely
       let amenities = [];
       try {
         amenities = req.body.amenities ? JSON.parse(req.body.amenities) : [];
@@ -191,7 +185,6 @@ exports.completeBoatInfo = [
         console.error('Error parsing amenities:', e);
       }
 
-      // Validate required fields
       if (!name || !boatType || !boatCapacity || !boatLicense) {
         return res.status(400).json({
           success: false,
@@ -199,10 +192,8 @@ exports.completeBoatInfo = [
         });
       }
 
-      // Get uploaded files
-      const photos = req.files ? req.files.map(file => `/uploads/boats/${file.filename}`) : [];
+      const photos = req.files ? req.files.map(file => `/Uploads/boats/${file.filename}`) : [];
 
-      // Create or update boat
       const updatedBoat = await Boat.findOneAndUpdate(
         { owner: userId },
         {
@@ -220,9 +211,8 @@ exports.completeBoatInfo = [
         }
       );
 
-      // Update user's boat info status
-      await User.findOneAndUpdate(
-        { userId: userId },
+      await User.findByIdAndUpdate(
+        userId,
         { boatInfoComplete: true },
         { new: true }
       );
@@ -232,11 +222,8 @@ exports.completeBoatInfo = [
         message: 'Boat information submitted successfully',
         boat: updatedBoat
       });
-
     } catch (error) {
       console.error('CompleteBoatInfo error:', error);
-      
-      // Clean up uploaded files if error occurs
       if (req.files && req.files.length > 0) {
         req.files.forEach(file => {
           try {
@@ -246,7 +233,6 @@ exports.completeBoatInfo = [
           }
         });
       }
-
       return res.status(500).json({
         success: false,
         message: 'Server error updating boat info',
@@ -256,23 +242,20 @@ exports.completeBoatInfo = [
   }
 ];
 
-
-// Update
 exports.updateBoat = async (req, res) => {
   console.log('=== UPDATE BOAT CONTROLLER STARTED ===');
   try {
     console.log('Request user:', req.user);
     console.log('Request body:', req.body);
 
-   const userId = req.user.userId; // Changed from req.user.userId
-    
+    const userId = req.user._id; // Use _id
     if (!userId) {
+      console.log('No user ID found');
       return res.status(401).json({
         success: false,
         message: 'Unauthorized: No user found'
       });
     }
-
 
     const { name, amenities, photos } = req.body;
     console.log('Extracted data:', { name, amenities, photos });
@@ -285,7 +268,7 @@ exports.updateBoat = async (req, res) => {
       });
     }
 
-    console.log('Searching for boat with owner:', req.user.userId);
+    console.log('Searching for boat with owner:', userId);
     const updatedBoat = await Boat.findOneAndUpdate(
       { owner: userId },
       {
@@ -295,7 +278,7 @@ exports.updateBoat = async (req, res) => {
         isVerified: true
       },
       { new: true, runValidators: true }
-    ).lean(); // Add .lean() for better logging
+    ).lean();
 
     console.log('Update result:', updatedBoat);
 
@@ -309,7 +292,7 @@ exports.updateBoat = async (req, res) => {
 
     console.log('Updating user boatInfoComplete status');
     await User.findByIdAndUpdate(
-      req.user.userId, 
+      userId,
       { boatInfoComplete: true },
       { new: true }
     );
@@ -320,7 +303,6 @@ exports.updateBoat = async (req, res) => {
       message: 'Boat updated successfully',
       boat: updatedBoat
     });
-
   } catch (error) {
     console.error('Controller error:', error);
     return res.status(500).json({
@@ -331,8 +313,6 @@ exports.updateBoat = async (req, res) => {
   }
 };
 
-
-// Delete
 exports.deleteBoat = async (req, res) => {
   try {
     await Boat.findByIdAndDelete(req.params.id);

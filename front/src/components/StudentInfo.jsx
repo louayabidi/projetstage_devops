@@ -16,7 +16,7 @@ const StudentInfo = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post("http://localhost:3000/api/auth/student-info", studentData);
+      const response = await axios.post("/api/auth/student-info", studentData);
       alert(response.data.message);
       window.location.href = "/profile"; // Redirigez vers le profil après la soumission
     } catch (error) {

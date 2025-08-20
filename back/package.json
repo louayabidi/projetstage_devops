@@ -4,8 +4,17 @@
 	"description": "",
 	"main": "index.js",
 	"scripts": {
-		"start": "node --env-file=.env index.js",
-		"dev": "node --watch --trace-warnings --env-file=.env index.js"
+		"start": "node index.js",
+		"dev": "nodemon index.js",
+		"format": "prettier -w .",
+		"prepare": "husky install",
+		 "test": "jest"
+	},
+	"lint-staged": {
+		"*.{js,jsx,ts,tsx,json,md,css}": [
+			"prettier -w",
+			"eslint --fix"
+		]
 	},
 	"author": "Assil",
 	"license": "ISC",
@@ -40,11 +49,19 @@
 	},
 	"devDependencies": {
 		"@eslint/js": "^9.32.0",
-		"eslint": "^9.32.0",
+		"@types/jest": "^30.0.0",
+		"eslint": "^9.33.0",
 		"eslint-config-prettier": "^10.1.8",
+		"eslint-plugin-import": "^2.32.0",
 		"eslint-plugin-prettier": "^5.5.4",
 		"eslint-plugin-react": "^7.37.5",
 		"globals": "^16.3.0",
-		"prettier": "^3.6.2"
+		"husky": "^8.0.0",
+		"jest": "^30.0.5",
+		"lint-staged": "^16.1.5",
+		"nodemon": "^3.1.10",
+		"prettier": "^3.6.2",
+		"supertest": "^7.1.4",
+		"ts-jest": "^29.4.1"
 	}
 }

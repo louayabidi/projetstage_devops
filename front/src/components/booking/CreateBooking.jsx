@@ -56,7 +56,7 @@ const CreateBooking = () => {
     }
 
     try {
-     const response = await axios.post('http://localhost:3000/api/bookings', {
+     const response = await axios.post('/api/bookings', {
   ...formData,
   departureLocation: {
     type: 'Point',

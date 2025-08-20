@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 exports.identifier = (req, res, next) => {
   try {
     let token = req.headers.authorization || req.cookies['Authorization'];
-
+console.log('Raw token:', token);
     if (!token) {
       return res.status(403).json({
         success: false,

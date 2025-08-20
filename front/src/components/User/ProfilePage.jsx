@@ -34,13 +34,33 @@ const EditProfilePage = () => {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const navigate = useNavigate();
 
-useEffect(() => {
+  // Set up axios defaults with the token
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    }
+  }, []);
+
+  useEffect(() => {
   const fetchUserProfile = async () => {
     try {
       const token = localStorage.getItem('token');
+      console.log('Token from localStorage:', token); // DEBUG
+      
       if (!token) {
+        console.log('No token found, redirecting to login'); // DEBUG
         navigate('/login');
         return;
+      }
+
+      // DEBUG: Check if token is valid format
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        console.log('Token payload:', payload);
+        console.log('Token expiration:', new Date(payload.exp * 1000));
+      } catch (e) {
+        console.log('Token format invalid:', e);
       }
 
       const response = await axios.get('http://localhost:3000/api/users/me', {
@@ -50,7 +70,6 @@ useEffect(() => {
       });
 
       if (response.data.success) {
-        // Ensure photo URL is absolute
         const userData = response.data.user;
         if (userData.photo && !userData.photo.startsWith('http')) {
           userData.photo = `http://localhost:3000${userData.photo}`;
@@ -60,9 +79,15 @@ useEffect(() => {
         setPreviewImage(userData.photo || '/default-avatar.jpg');
       }
     } catch (err) {
-      console.error('Profile fetch error:', err);
+      console.error('Profile fetch error details:', err.response?.data); // DEBUG
       setError(err.response?.data?.message || 'Error fetching profile');
       setSnackbarOpen(true);
+      
+      if (err.response?.status === 401) {
+        console.log('401 error - removing token and redirecting'); // DEBUG
+        localStorage.removeItem('token');
+        navigate('/login');
+      }
     } finally {
       setLoading(false);
     }
@@ -70,6 +95,8 @@ useEffect(() => {
 
   fetchUserProfile();
 }, [navigate]);
+
+
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -87,52 +114,51 @@ useEffect(() => {
     }
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-  setError('');
-  setSuccess('');
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    setSuccess('');
 
-  try {
-    const token = localStorage.getItem('token');
-    const formData = new FormData();
+    try {
+      const formData = new FormData();
 
-    // Append the file if selected
-    if (selectedFile) {
-      formData.append('photo', selectedFile);
-    }
-
-    // Append other user data
-    formData.append('firstName', user.firstName);
-    formData.append('lastName', user.lastName);
-    formData.append('phoneNumber', user.phoneNumber);
-
-    const response = await axios.patch(
-      'http://localhost:3000/api/users/me',
-      formData,
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data' // Important for file uploads
-        }
+      // Append the file if selected
+      if (selectedFile) {
+        formData.append('photo', selectedFile);
       }
-    );
 
-    if (response.data.success) {
-      setSuccess('Profile updated successfully!');
+      // Append other user data
+      formData.append('firstName', user.firstName);
+      formData.append('lastName', user.lastName);
+      formData.append('phoneNumber', user.phoneNumber);
+
+      // FIX: Use relative path
+      const response = await axios.patch(
+        '/api/users/me',
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+
+      if (response.data.success) {
+        setSuccess('Profile updated successfully!');
+        setSnackbarOpen(true);
+        setTimeout(() => {
+          navigate('/profile');
+        }, 1500);
+      }
+    } catch (err) {
+      console.error('Update error:', err);
+      setError(err.response?.data?.message || 'Error updating profile');
       setSnackbarOpen(true);
-      setTimeout(() => {
-        navigate('/profile');
-      }, 1500);
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error('Update error:', err);
-    setError(err.response?.data?.message || 'Error updating profile');
-    setSnackbarOpen(true);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const handleSnackbarClose = () => {
     setSnackbarOpen(false);
@@ -159,22 +185,22 @@ const handleSubmit = async (e) => {
           sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}
         >
           <Box display="flex" flexDirection="column" alignItems="center">
-       <Avatar
-  src={previewImage || 'http://localhost:3000/default-avatar.jpg'}
-  sx={{ width: 120, height: 120, mb: 2 }}
-  onError={(e) => {
-    e.target.src = 'http://localhost:3000/default-avatar.jpg';
-  }}
-/>
+            <Avatar
+              src={previewImage || '/default-avatar.jpg'}
+              sx={{ width: 120, height: 120, mb: 2 }}
+              onError={(e) => {
+                e.target.src = '/default-avatar.jpg';
+              }}
+            />
             <Button variant="contained" component="label">
               Upload Photo
-             <input 
-             type="file" 
-             hidden 
-              accept="image/*" 
-             onChange={handleFileChange}
-             id="profile-upload"
-            />
+              <input 
+                type="file" 
+                hidden 
+                accept="image/*" 
+                onChange={handleFileChange}
+                id="profile-upload"
+              />
             </Button>
           </Box>
 

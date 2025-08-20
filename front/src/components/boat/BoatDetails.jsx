@@ -1,7 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Container, Row, Col, Card, Button, Spinner, Alert } from 'react-bootstrap';
-import { FaShip, FaUsers, FaCalendarAlt, FaMapMarkerAlt, FaStar, FaChevronLeft } from 'react-icons/fa';
+import { 
+  FaShip, 
+  FaUsers, 
+  FaCalendarAlt, 
+  FaMapMarkerAlt, 
+  FaStar, 
+  FaChevronLeft, 
+  FaCalendar, 
+  FaMoneyBillWave 
+} from 'react-icons/fa';
+
 import axios from 'axios';
 import './BoatDetails.css'; 
 import ImageGallery from 'react-image-gallery';
@@ -15,11 +25,14 @@ const BoatDetails = () => {
   const [error, setError] = useState(null);
   const [mainImage, setMainImage] = useState(null);
   const [activeTab, setActiveTab] = useState('description');
+const handleReservation = () => {
+  navigate(`/reservation/${id}`);
+}; 
 
   useEffect(() => {
     const fetchBoatDetails = async () => {
       try {
-        const response = await axios.get(`http://localhost:3000/api/boats/${id}`);
+        const response = await axios.get(`/api/boats/${id}`);
         console.log('Boat data:', response.data);
         setBoat(response.data);
         if (response.data.photos && response.data.photos.length > 0) {
@@ -201,75 +214,45 @@ const BoatDetails = () => {
           </Card>
         </Col>
 
-        <Col lg={4}>
-          <Card className="border-0 shadow-sm sticky-top" style={{ top: '20px' }}>
+        <Col md={4}>
+          <Card className="sticky-top" style={{ top: '20px' }}>
+            <Card.Header className="bg-primary text-white">
+              <h5 className="mb-0">Reserve This Boat</h5>
+            </Card.Header>
             <Card.Body>
-              <h2 className="boat-title">{boat.name}</h2>
-              {boat.isVerified && (
-                <div className="verified-badge mb-3">
-                  <FaStar className="me-1" /> Verified Boat
-                </div>
-              )}
-
-              <div className="price-section mb-4">
-                <h3 className="text-primary">${boat.pricePerDay || '--'} <small className="text-muted">/ day</small></h3>
-                {boat.discount && (
-                  <div className="text-success">
-                    <small>Special offer: {boat.discount}% off</small>
-                  </div>
-                )}
+           {boat.owner && (
+  <div className="mb-3">
+    <h6>Boat Owner</h6>
+    <p className="mb-1">
+      {boat.owner.firstName} {boat.owner.lastName}
+    </p>
+    {boat.owner.verified && (
+      <Badge bg="success" className="small">
+        Verified Owner
+      </Badge>
+    )}
+  </div>
+)}
+              
+              <div className="d-grid gap-2">
+                <Button 
+                  variant="primary" 
+                  size="lg"
+                  onClick={handleReservation}
+                >
+                  <FaCalendar className="me-2" />
+                  Make Reservation
+                </Button>
               </div>
-
-              <div className="booking-widget mb-4">
-                <h5 className="mb-3">
-                  <FaCalendarAlt className="me-2" /> Book this boat
-                </h5>
-                <div className="d-grid gap-2">
-                  <Button variant="primary" size="lg">
-                    Check Availability
-                  </Button>
-                  <Button variant="outline-primary">
-                    Contact Owner
-                  </Button>
-                </div>
+              
+              <hr />
+              
+              <div className="text-center">
+                <p className="text-muted small">
+                  <FaMoneyBillWave className="me-1" />
+                  Secure payment options available
+                </p>
               </div>
-
-              <div className="owner-info mt-4 pt-3 border-top">
-  <h5>About the owner</h5>
-  {boat.owner ? (
-    <div className="d-flex align-items-center mt-2">
-      <div className="owner-avatar me-3">
-        {boat.owner.avatar ? (
-          <img 
-            src={`http://localhost:3000${boat.owner.avatar}`} 
-            alt={boat.owner.firstName} 
-            className="rounded-circle"
-            width="50"
-            height="50"
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = '/path/to/default/avatar.jpg';
-            }}
-          />
-        ) : (
-          <div className="avatar-placeholder rounded-circle bg-light d-flex align-items-center justify-content-center" style={{width: '50px', height: '50px'}}>
-            <FaUsers className="text-muted" />
-          </div>
-        )}
-      </div>
-      <div>
-        <h6 className="mb-0">{boat.owner.name || `${boat.owner.firstName} ${boat.owner.lastName}`}</h6>
-        <small className="text-muted">
-          Member since {boat.owner.createdAt ? new Date(boat.owner.createdAt).getFullYear() : '--'}
-        </small>
-      </div>
-    </div>
-  ) : (
-    <p className="text-muted">Owner information not available</p>
-  )}
-</div>
-
-           
             </Card.Body>
           </Card>
         </Col>
@@ -277,5 +260,4 @@ const BoatDetails = () => {
     </Container>
   );
 };
-
 export default BoatDetails;

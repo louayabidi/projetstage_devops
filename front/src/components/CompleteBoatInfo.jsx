@@ -130,7 +130,7 @@ const handleSubmit = async (e) => {
     });
 
     const response = await axios.put(
-      'http://localhost:3000/api/boats/complete-info',
+      '/api/boats/complete-info',
       formDataToSend,
       {
         headers: { 

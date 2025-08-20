@@ -44,7 +44,7 @@ const BoatOwnersList = () => {
           return;
         }
 
-        const response = await axios.get('http://localhost:3000/api/users/boat-owners', {
+        const response = await axios.get('/api/users/boat-owners', {
           headers: {
             Authorization: `Bearer ${token}`
           }

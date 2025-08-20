@@ -87,6 +87,10 @@ app.use(cors({
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
+
+//test devops
+app.get("/health", (req, res) => res.status(200).send("ok"));
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -185,7 +189,6 @@ passport.use(new LinkedInStrategy({
   }
 }));
 
-// JWT Strategy for Passport
 const JwtStrategy = require('passport-jwt').Strategy;
 const ExtractJwt = require('passport-jwt').ExtractJwt;
 passport.use(new JwtStrategy({
@@ -195,7 +198,7 @@ passport.use(new JwtStrategy({
   try {
     const user = await User.findById(jwt_payload.userId);
     if (user) {
-      return done(null, user);
+      return done(null, { _id: user._id, userId: user._id, role: user.role });
     }
     return done(null, false);
   } catch (error) {
@@ -210,6 +213,6 @@ passport.deserializeUser(async (id, done) => {
 });
 
 // Start server
-server.listen(process.env.PORT || 3000, () => {
+server.listen(process.env.PORT || 3000, '0.0.0.0', () => {
   console.log(`Listening on port ${process.env.PORT || 3000}...`);
 });

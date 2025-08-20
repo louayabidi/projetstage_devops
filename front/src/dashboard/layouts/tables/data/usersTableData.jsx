@@ -15,7 +15,7 @@ export default function useUsersTableData() {
 const fetchUsers = async () => {
   try {
     const token = localStorage.getItem("token");
-    const response = await axios.get("http://localhost:3000/api/users", {
+    const response = await axios.get("/api/users", {
       headers: { Authorization: `Bearer ${token}` }
     });
     setUsers(response.data.users);
@@ -32,7 +32,7 @@ useEffect(() => {
 
 const verifyBoatOwner = async (id) => {
   try {
-    await axios.patch(`http://localhost:3000/api/auth/verify-boat-owner/${id}`, {}, {
+    await axios.patch(`/api/auth/verify-boat-owner/${id}`, {}, {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`
       }

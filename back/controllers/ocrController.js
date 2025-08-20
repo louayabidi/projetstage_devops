@@ -121,7 +121,7 @@ exports.uploadImage = async (req, res) => {
       nom,
       prenom,
       email,
-      image: `http://localhost:3000/uploads/${req.file.filename}`,
+      image: `http://backend:3000/uploads/${req.file.filename}`,
     });
 
   } catch (err) {

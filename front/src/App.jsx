@@ -12,10 +12,12 @@ import Boats from './components/boat/Boats';
 import BoatDetails from './components/boat/BoatDetails';
 import ProfilePage from './components/User/ProfilePage';
 import BoatOwnersList from './components/User/BoatOwnersList';
-import CreateBooking from './components/booking/CreateBooking'; // New
-import BookingRequests from './components/booking/BookingRequests'; // New
-import BookingOffers from './components/booking/BookingOffers'; // New
-import BookingDetails from './components/booking/BookingDetails'; // New
+import CreateBooking from './components/booking/CreateBooking'; 
+import BookingRequests from './components/booking/BookingRequests'; 
+import BookingOffers from './components/booking/BookingOffers';
+import BookingDetails from './components/booking/BookingDetails'; 
+import ReservationPage from './components/booking/ReservationPage'; 
+
 
 function App() {
   return (
@@ -28,7 +30,7 @@ function App() {
       <Route path="/registration" element={<Registration />} />
       <Route path="/Boats" element={<Layout><Boats /></Layout>} />
       <Route path="/boats/:id" element={<Layout><BoatDetails /></Layout>} />
-      
+       <Route path="/reservation/:boatId" element={<ReservationPage />} />
       {/* Booking Routes */}
       <Route path="/create-booking" element={<Layout><CreateBooking /></Layout>} />
       <Route path="/booking-requests" element={<Layout><BookingRequests /></Layout>} />

@@ -15,5 +15,10 @@ export default defineConfig({
       'variables': path.resolve(__dirname, './src/dashboard/variables'),
       
     }
+  },
+  server: {
+    proxy: {
+      '/api': 'http://localhost:3000' 
+    }
   }
 });

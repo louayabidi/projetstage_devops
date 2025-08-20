@@ -1,37 +1,51 @@
+
 import React, { useState, useEffect } from 'react';
-import { Container, Card, Button, Spinner, Alert } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Alert, Spinner, Badge, Form } from 'react-bootstrap';
+import { FaCalendar, FaUsers, FaShip, FaMoneyBillWave } from 'react-icons/fa'; // Replace FaBoat with FaShip
 import axios from 'axios';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const BookingOffers = () => {
-  const [offers, setOffers] = useState([]);
+  const navigate = useNavigate();
+  const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchOffers = async () => {
+    const fetchBookingOffers = async () => {
       try {
-        const response = await axios.get('/api/bookings/offers', {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`
-          }
+        const token = localStorage.getItem('token');
+        const response = await axios.get('/api/bookings/owner', {
+          headers: { Authorization: `Bearer ${token}` },
         });
-        setOffers(response.data.offers);
+        // Filter bookings where an offer has been made
+        const offeredBookings = response.data.bookings.filter(
+          (booking) => booking.status === 'offered' || booking.status === 'accepted'
+        );
+        setBookings(offeredBookings);
       } catch (err) {
-        setError(err.response?.data?.message || 'Failed to load offers');
+        setError(err.response?.data?.message || 'Failed to fetch booking offers');
       } finally {
         setLoading(false);
       }
     };
-    
-    fetchOffers();
+
+    fetchBookingOffers();
   }, []);
 
   if (loading) {
     return (
-      <Container className="text-center my-5">
-        <Spinner animation="border" />
-        <p>Loading booking offers...</p>
+      <Container className="text-center my-5 py-5">
+        <Spinner animation="border" variant="primary" />
+        <h4 className="mt-3">Loading booking offers...</h4>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container className="my-5">
+        <Alert variant="danger">{error}</Alert>
       </Container>
     );
   }
@@ -39,29 +53,63 @@ const BookingOffers = () => {
   return (
     <Container className="my-5">
       <h2 className="mb-4">Your Booking Offers</h2>
-      
-      {error && <Alert variant="danger">{error}</Alert>}
-      
-      {offers.length === 0 ? (
-        <Alert variant="info">No offers available</Alert>
+      {bookings.length === 0 ? (
+        <Alert variant="info">No offers made yet.</Alert>
       ) : (
-        <div className="booking-list">
-          {offers.map(offer => (
-            <Card key={offer._id} className="mb-3">
-              <Card.Body>
-                <Card.Title>Offer for Booking #{offer.bookingId.slice(-6)}</Card.Title>
-                <Card.Text>
-                  <strong>Boat:</strong> {offer.boat.name}<br />
-                  <strong>Owner:</strong> {offer.owner.firstName} {offer.owner.lastName}<br />
-                  <strong>Price:</strong> ${offer.offerPrice.toFixed(2)}
-                </Card.Text>
-                <Link to={`/bookings/${offer.bookingId}`}>
-                  <Button variant="success">View Details</Button>
-                </Link>
-              </Card.Body>
-            </Card>
+        <Row>
+          {bookings.map((booking) => (
+            <Col md={6} lg={4} key={booking._id} className="mb-4">
+              <Card>
+                <Card.Header className="d-flex justify-content-between align-items-center">
+                  <h5 className="mb-0">Booking #{booking._id.slice(-6)}</h5>
+                  <Badge
+                    bg={
+                      booking.status === 'offered'
+                        ? 'info'
+                        : booking.status === 'accepted'
+                        ? 'success'
+                        : 'secondary'
+                    }
+                  >
+                    {booking.status.toUpperCase()}
+                  </Badge>
+                </Card.Header>
+                <Card.Body>
+                  <p className="mb-1">
+                    <FaBoat className="me-2" />
+                    <strong>Boat:</strong> {booking.boat?.name} ({booking.boat?.boatType})
+                  </p>
+                  <p className="mb-1">
+                    <FaUsers className="me-2" />
+                    <strong>Passenger:</strong> {booking.passenger?.firstName}{' '}
+                    {booking.passenger?.lastName}
+                  </p>
+                  <p className="mb-1">
+                    <FaUsers className="me-2" />
+                    <strong>Persons:</strong> {booking.numberOfPersons}
+                  </p>
+                  <p className="mb-1">
+                    <FaCalendar className="me-2" />
+                    <strong>Dates:</strong>{' '}
+                    {new Date(booking.startDate).toLocaleDateString()} -{' '}
+                    {new Date(booking.endDate).toLocaleDateString()}
+                  </p>
+                  <p className="mb-1">
+                    <FaMoneyBillWave className="me-2" />
+                    <strong>Offered Price:</strong> ${booking.offerPrice}
+                  </p>
+                  <Button
+                    variant="outline-primary"
+                    className="mt-3 w-100"
+                    onClick={() => navigate(`/bookings/${booking._id}`)}
+                  >
+                    View Details & Chat
+                  </Button>
+                </Card.Body>
+              </Card>
+            </Col>
           ))}
-        </div>
+        </Row>
       )}
     </Container>
   );

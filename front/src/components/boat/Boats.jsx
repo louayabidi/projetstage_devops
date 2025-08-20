@@ -17,7 +17,7 @@ const Boats = () => {
   useEffect(() => {
     const fetchBoats = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/api/boats');
+        const response = await axios.get('/api/boats');
         setBoats(Array.isArray(response?.data) ? response.data : []);
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to fetch boats');

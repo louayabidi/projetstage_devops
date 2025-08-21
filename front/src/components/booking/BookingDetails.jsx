@@ -1,54 +1,33 @@
-// BookingDetails.jsx - Version corrigée
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Container, 
-  Row, 
-  Col, 
-  Card, 
-  Button, 
-  Alert, 
-  Spinner, 
-  Badge, 
-  ListGroup 
-} from 'react-bootstrap';
-import { 
-  FaCalendar, 
-  FaUsers, 
-  FaHome, 
-  FaMapMarkerAlt, 
-  FaMoneyBillWave, 
-  FaPaperPlane 
-} from 'react-icons/fa';
-import axios from 'axios';
+import React, { useState, useEffect } from 'react';
+import { Container, Row, Col, Card, Alert, Spinner, Badge, Button, Modal, Form } from 'react-bootstrap';
 import { useParams, useNavigate } from 'react-router-dom';
-import './BookingDetails.css';
+import axios from 'axios';
+import { FaCalendar, FaUsers, FaShip, FaMoneyBillWave, FaMapMarkerAlt, FaHome, FaCheck } from 'react-icons/fa';
+import BookingChat from './BookingChat';
+import MapComponent from '../Map/MapComponent';
 
 const BookingDetails = () => {
   const { bookingId } = useParams();
   const navigate = useNavigate();
   const [booking, setBooking] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
-  const messagesEndRef = useRef(null);
+  const [showOfferModal, setShowOfferModal] = useState(false);
+  const [offerPrice, setOfferPrice] = useState('');
+  const [submittingOffer, setSubmittingOffer] = useState(false);
+  const [submittingConfirm, setSubmittingConfirm] = useState(false);
+  const [passengerLocation, setPassengerLocation] = useState(null);
 
   useEffect(() => {
-    const fetchBookingDetails = async () => {
+    const fetchBooking = async () => {
       try {
         const token = localStorage.getItem('token');
-        const [bookingResponse, messagesResponse] = await Promise.all([
-          axios.get(`/api/bookings/${bookingId}`, {
-            headers: { Authorization: `Bearer ${token}` }
-          }),
-          axios.get(`/api/bookings/${bookingId}/messages`, {
-            headers: { Authorization: `Bearer ${token}` }
-          })
-        ]);
-
-        setBooking(bookingResponse.data);
-        setMessages(messagesResponse.data.messages || []);
+        const response = await axios.get(`http://localhost:3000/api/bookings/${bookingId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        console.log('Fetched booking data:', response.data.booking);
+        setBooking(response.data.booking);
+        setPassengerLocation(response.data.booking.currentLocation?.coordinates || [0, 0]);
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to fetch booking details');
       } finally {
@@ -56,51 +35,53 @@ const BookingDetails = () => {
       }
     };
 
-    fetchBookingDetails();
+    fetchBooking();
+
+    const intervalId = setInterval(fetchBooking, 30000);
+    return () => clearInterval(intervalId);
   }, [bookingId]);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  const handleSendMessage = async (e) => {
-    e.preventDefault();
-    if (!newMessage.trim()) return;
-
-    setSending(true);
+  const handleMakeOffer = async () => {
+    setSubmittingOffer(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post(`/api/bookings/${bookingId}/messages`, {
-        content: newMessage
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      setMessages(prev => [...prev, response.data.message]);
-      setNewMessage('');
+      const response = await axios.post(
+        `http://localhost:3000/api/bookings/${bookingId}/offer`,
+        { offerPrice: parseFloat(offerPrice) },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setBooking(response.data.booking);
+      setShowOfferModal(false);
+      setOfferPrice('');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to send message');
+      setError(err.response?.data?.message || 'Failed to make offer');
     } finally {
-      setSending(false);
+      setSubmittingOffer(false);
     }
   };
 
-  const handleAcceptOffer = async () => {
+  const handleConfirmBooking = async () => {
+    setSubmittingConfirm(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post(`/api/bookings/${bookingId}/accept`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
+      const response = await axios.post(
+        `http://localhost:3000/api/bookings/${bookingId}/confirm`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       setBooking(response.data.booking);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to accept offer');
+      setError(err.response?.data?.message || 'Failed to confirm booking');
+    } finally {
+      setSubmittingConfirm(false);
     }
   };
+
+  const userId = localStorage.getItem('userId');
+  const boatOwnerId = booking?.boatOwner?._id;
+  console.log('Full booking data:', booking);
+  console.log('User ID:', userId, 'Boat Owner ID:', boatOwnerId, 'Status:', booking?.status, 'Is Boat Owner:', userId === boatOwnerId?.toString());
+  const isBoatOwner = userId && boatOwnerId && userId === boatOwnerId.toString();
 
   if (loading) {
     return (
@@ -111,175 +92,159 @@ const BookingDetails = () => {
     );
   }
 
-  if (error || !booking) {
+  if (error) {
     return (
       <Container className="my-5">
-        <Alert variant="danger">
-          <Alert.Heading>Error</Alert.Heading>
-          <p>{error || 'Booking not found'}</p>
-          <Button variant="primary" onClick={() => navigate('/dashboard')}>
-            Back to Dashboard
-          </Button>
-        </Alert>
+        <Alert variant="danger">{error}</Alert>
       </Container>
     );
   }
 
-  const isPassenger = booking.passenger._id === localStorage.getItem('userId');
-  const canAcceptOffer = isPassenger && booking.status === 'offered';
+  if (!booking) {
+    return (
+      <Container className="my-5">
+        <Alert variant="danger">Booking not found</Alert>
+      </Container>
+    );
+  }
 
   return (
     <Container className="my-5">
-      <Button variant="outline-primary" className="mb-4" onClick={() => navigate('/dashboard')}>
-        ← Back to Dashboard
+      <Button variant="outline-primary" className="mb-4" onClick={() => navigate(-1)}>
+        ← Back
       </Button>
-
+      <h2 className="mb-4">Booking Details #{booking._id.slice(-6)}</h2>
       <Row>
-        <Col lg={8}>
+        <Col lg={6}>
           <Card className="mb-4">
             <Card.Header className="d-flex justify-content-between align-items-center">
-              <h4 className="mb-0">Booking #{booking._id.slice(-6)}</h4>
-              <Badge bg={
-                booking.status === 'pending' ? 'warning' :
-                booking.status === 'offered' ? 'info' :
-                booking.status === 'accepted' ? 'success' :
-                booking.status === 'completed' ? 'secondary' : 'danger'
-              }>
+              <h5 className="mb-0">Booking Information</h5>
+              <Badge
+                bg={
+                  booking.status === 'pending' ? 'warning' :
+                  booking.status === 'offered' ? 'info' :
+                  booking.status === 'accepted' ? 'info' :
+                  booking.status === 'confirmed' ? 'success' :
+                  'secondary'
+                }
+              >
                 {booking.status.toUpperCase()}
               </Badge>
             </Card.Header>
             <Card.Body>
-              <Row className="mb-3">
-                <Col md={6}>
-                  <h6>Boat Information</h6>
-                  <p className="mb-1"><strong>Name:</strong> {booking.boat?.name}</p>
-                  <p className="mb-1"><strong>Type:</strong> {booking.boat?.boatType}</p>
-                  <p className="mb-1"><strong>Capacity:</strong> {booking.boat?.boatCapacity} persons</p>
-                </Col>
-                <Col md={6}>
-                  <h6>Trip Details</h6>
-                  <p className="mb-1"><strong>Persons:</strong> {booking.numberOfPersons}</p>
-                  <p className="mb-1"><strong>Cabins:</strong> {booking.numberOfCabins}</p>
-                  <p className="mb-1"><strong>Kids:</strong> {booking.hasKids ? 'Yes' : 'No'}</p>
-                </Col>
-              </Row>
-
-              <Row className="mb-3">
-                <Col md={6}>
-                  <h6>Dates</h6>
-                  <p className="mb-1"><strong>Start:</strong> {new Date(booking.startDate).toLocaleString()}</p>
-                  <p className="mb-1"><strong>End:</strong> {new Date(booking.endDate).toLocaleString()}</p>
-                </Col>
-                <Col md={6}>
-                  <h6>Location</h6>
-                  <p className="mb-1"><strong>From:</strong> {booking.departureLocation.coordinates.join(', ')}</p>
-                  <p className="mb-1"><strong>To:</strong> {booking.destination}</p>
-                </Col>
-              </Row>
-
-              {booking.offerPrice && (
-                <Alert variant="info" className="mb-3">
-                  <Alert.Heading>Offer from Boat Owner</Alert.Heading>
-                  <p className="mb-0"><strong>Price:</strong> ${booking.offerPrice}</p>
-                  {canAcceptOffer && (
-                    <Button variant="success" className="mt-2" onClick={handleAcceptOffer}>
-                      Accept Offer
-                    </Button>
-                  )}
-                </Alert>
-              )}
-
-              <div className="booking-chat mt-4">
-                <h5>Chat with {isPassenger ? 'Boat Owner' : 'Passenger'}</h5>
-                
-                <div className="chat-messages mb-3">
-                  {messages.length === 0 ? (
-                    <p className="text-muted text-center">No messages yet. Start the conversation!</p>
+              <p><FaShip className="me-2" /><strong>Boat:</strong> {booking.boat.name} ({booking.boat.boatType})</p>
+              <p><FaUsers className="me-2" /><strong>Passenger:</strong> {booking.passenger.firstName} {booking.passenger.lastName}</p>
+              <p><FaUsers className="me-2" /><strong>Boat Owner:</strong> {booking.boatOwner.firstName} {booking.boatOwner.lastName}</p>
+              <p><FaUsers className="me-2" /><strong>Number of Persons:</strong> {booking.numberOfPersons}</p>
+              <p><FaHome className="me-2" /><strong>Number of Cabins:</strong> {booking.numberOfCabins}</p>
+              <p><FaCalendar className="me-2" /><strong>Dates:</strong> {new Date(booking.startDate).toLocaleString()} - {new Date(booking.endDate).toLocaleString()}</p>
+              <p><FaMapMarkerAlt className="me-2" /><strong>Departure:</strong> Lat: {booking.departureLocation.coordinates[1]}, Lng: {booking.departureLocation.coordinates[0]}</p>
+              <p><FaMapMarkerAlt className="me-2" /><strong>Destination:</strong> {booking.destination}</p>
+              <p><FaMoneyBillWave className="me-2" /><strong>Payment Method:</strong> {booking.paymentMethod}</p>
+              {booking.offerPrice && <p><FaMoneyBillWave className="me-2" /><strong>Offer Price:</strong> ${booking.offerPrice}</p>}
+              {isBoatOwner && booking.status === 'pending' ? (
+                <Button
+                  variant="success"
+                  className="mt-3"
+                  onClick={() => setShowOfferModal(true)}
+                  disabled={submittingOffer}
+                >
+                  {submittingOffer ? (
+                    <>
+                      <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" className="me-2" />
+                      Making Offer...
+                    </>
                   ) : (
-                    messages.map((message) => (
-                      <div
-                        key={message._id}
-                        className={`message ${message.sender._id === localStorage.getItem('userId') ? 'own-message' : 'other-message'}`}
-                      >
-                        <div className="message-content">
-                          <p className="mb-1">{message.content}</p>
-                          <small className="text-muted">
-                            {new Date(message.createdAt).toLocaleTimeString()}
-                          </small>
-                        </div>
-                      </div>
-                    ))
+                    'Make an Offer'
                   )}
-                  <div ref={messagesEndRef} />
-                </div>
-
-                <form onSubmit={handleSendMessage} className="chat-input">
-                  <div className="input-group">
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="Type your message..."
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      disabled={sending}
-                    />
-                    <button
-                      type="submit"
-                      className="btn btn-primary"
-                      disabled={sending || !newMessage.trim()}
-                    >
-                      {sending ? <Spinner animation="border" size="sm" /> : <FaPaperPlane />}
-                    </button>
-                  </div>
-                </form>
-              </div>
+                </Button>
+              ) : (
+                <Button
+                  variant="warning"
+                  className="mt-3"
+                  onClick={() => setShowOfferModal(true)}
+                  disabled={submittingOffer || booking.status !== 'pending'}
+                  style={{ display: isBoatOwner ? 'none' : 'block' }}
+                >
+                  Make an Offer
+                </Button>
+              )}
+              {booking.status === 'accepted' && (
+                <Button
+                  variant="primary"
+                  className="mt-3"
+                  onClick={handleConfirmBooking}
+                  disabled={submittingConfirm || (isBoatOwner ? booking.boatOwnerConfirmed : booking.passengerConfirmed)}
+                >
+                  {submittingConfirm ? (
+                    <>
+                      <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" className="me-2" />
+                      Confirming...
+                    </>
+                  ) : isBoatOwner ? (
+                    booking.boatOwnerConfirmed ? 'Confirmed by Owner' : 'Confirm as Owner'
+                  ) : (
+                    booking.passengerConfirmed ? 'Confirmed by Passenger' : 'Confirm as Passenger'
+                  )}
+                </Button>
+              )}
             </Card.Body>
           </Card>
         </Col>
-
-        <Col lg={4}>
-          <Card className="sticky-top" style={{ top: '20px' }}>
+        <Col lg={6}>
+          <Card className="mb-4">
             <Card.Header>
-              <h5 className="mb-0">Booking Status</h5>
+              <h5 className="mb-0">Passenger Location</h5>
             </Card.Header>
             <Card.Body>
-              <ListGroup variant="flush">
-                <ListGroup.Item>
-                  <strong>Current Status:</strong>
-                  <Badge bg={
-                    booking.status === 'pending' ? 'warning' :
-                    booking.status === 'offered' ? 'info' :
-                    booking.status === 'accepted' ? 'success' :
-                    booking.status === 'completed' ? 'secondary' : 'danger'
-                  } className="ms-2">
-                    {booking.status.toUpperCase()}
-                  </Badge>
-                </ListGroup.Item>
-                
-                <ListGroup.Item>
-                  <strong>Created:</strong>
-                  <br />
-                  {new Date(booking.createdAt).toLocaleDateString()}
-                </ListGroup.Item>
-                
-                <ListGroup.Item>
-                  <strong>Payment Method:</strong>
-                  <br />
-                  {booking.paymentMethod.replace('_', ' ').toUpperCase()}
-                </ListGroup.Item>
-                
-                {booking.offerPrice && (
-                  <ListGroup.Item className="bg-light">
-                    <strong>Offered Price:</strong>
-                    <br />
-                    ${booking.offerPrice}
-                  </ListGroup.Item>
-                )}
-              </ListGroup>
+              {passengerLocation && (
+                <MapComponent
+                  initialPosition={passengerLocation}
+                  onLocationChange={() => {}}
+                />
+              )}
+              {!passengerLocation && <p>No real-time location data available.</p>}
             </Card.Body>
           </Card>
+          <BookingChat bookingId={bookingId} />
         </Col>
       </Row>
+
+      {/* Modal for Offer Price Input */}
+      <Modal show={showOfferModal} onHide={() => setShowOfferModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Make an Offer</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Offer Price ($)</Form.Label>
+              <Form.Control
+                type="number"
+                min="0"
+                step="0.01"
+                value={offerPrice}
+                onChange={(e) => setOfferPrice(e.target.value)}
+                placeholder="Enter offer price"
+                required
+              />
+            </Form.Group>
+          </Form>
+          {error && <Alert variant="danger">{error}</Alert>}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowOfferModal(false)}>
+            Close
+          </Button>
+          <Button variant="primary" onClick={handleMakeOffer} disabled={submittingOffer || !offerPrice}>
+            {submittingOffer ? (
+              <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" />
+            ) : (
+              'Submit Offer'
+            )}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Container>
   );
 };

@@ -12,7 +12,6 @@ const userRouter = require("./routers/userRouter");
 const authRouter = require("./routers/authRouter");
 const boatRouter = require("./routers/boat");
 const bookingRouter = require("./routers/bookingRouter");
-
 const app = express();
 
 // Middleware
@@ -49,7 +48,6 @@ app.use('/api/auth', authRouter);
 app.use('/api/users', userRouter);
 app.use('/api/boats', boatRouter);
 app.use('/api/bookings', bookingRouter);
-
 // Health route for testing
 app.get("/health", (req, res) => res.status(200).send("ok"));
 

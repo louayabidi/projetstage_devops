@@ -1,5 +1,6 @@
+// Updated BookingRequests.jsx
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Alert, Spinner, Badge, Form } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Alert, Spinner, Badge, Modal, Form } from 'react-bootstrap';
 import { FaCalendar, FaUsers, FaShip, FaMoneyBillWave } from 'react-icons/fa';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -9,17 +10,20 @@ const BookingRequests = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [offerForms, setOfferForms] = useState({});
+  const [showOfferModal, setShowOfferModal] = useState(null); // Track which booking's modal is open
+  const [offerPrice, setOfferPrice] = useState('');
+  const [offerMessage, setOfferMessage] = useState('');
+  const [submittingOffer, setSubmittingOffer] = useState(false);
 
   useEffect(() => {
     const fetchBookingRequests = async () => {
       try {
         const token = localStorage.getItem('token');
-        console.log('Token:', token); // Debug log
+        console.log('Token:', token);
         const response = await axios.get('http://localhost:3000/api/bookings/owner', {
           headers: { Authorization: `Bearer ${token}` },
         });
-        console.log('API Response:', response.data); // Debug log
+        console.log('API Response:', response.data);
         setBookings(response.data.bookings || []);
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to fetch booking requests');
@@ -31,18 +35,13 @@ const BookingRequests = () => {
     fetchBookingRequests();
   }, []);
 
-  const handleOfferSubmit = async (bookingId) => {
-    const { offerPrice, message } = offerForms[bookingId] || {};
-    if (!offerPrice) {
-      setError('Offer price is required');
-      return;
-    }
-
+  const handleMakeOffer = async (bookingId) => {
+    setSubmittingOffer(true);
     try {
       const token = localStorage.getItem('token');
       await axios.post(
         `http://localhost:3000/api/bookings/${bookingId}/offer`,
-        { offerPrice, message },
+        { offerPrice: parseFloat(offerPrice), message: offerMessage },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setBookings((prev) =>
@@ -52,20 +51,14 @@ const BookingRequests = () => {
             : booking
         )
       );
-      setOfferForms((prev) => ({ ...prev, [bookingId]: { offerPrice: '', message: '' } }));
+      setShowOfferModal(null);
+      setOfferPrice('');
+      setOfferMessage('');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to submit offer');
+    } finally {
+      setSubmittingOffer(false);
     }
-  };
-
-  const handleOfferChange = (bookingId, field, value) => {
-    setOfferForms((prev) => ({
-      ...prev,
-      [bookingId]: {
-        ...prev[bookingId],
-        [field]: value,
-      },
-    }));
   };
 
   if (loading) {
@@ -138,44 +131,14 @@ const BookingRequests = () => {
                     </p>
                   )}
                   {booking.status === 'pending' && (
-                    <Form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        handleOfferSubmit(booking._id);
-                      }}
-                      className="mt-3"
+                    <Button
+                      variant="success"
+                      className="mt-3 w-100"
+                      onClick={() => setShowOfferModal(booking._id)}
+                      disabled={submittingOffer}
                     >
-                      <Form.Group className="mb-2">
-                        <Form.Label>
-                          <FaMoneyBillWave className="me-2" />
-                          Offer Price
-                        </Form.Label>
-                        <Form.Control
-                          type="number"
-                          placeholder="Enter offer price"
-                          value={offerForms[booking._id]?.offerPrice || ''}
-                          onChange={(e) =>
-                            handleOfferChange(booking._id, 'offerPrice', e.target.value)
-                          }
-                          required
-                        />
-                      </Form.Group>
-                      <Form.Group className="mb-2">
-                        <Form.Label>Message (Optional)</Form.Label>
-                        <Form.Control
-                          as="textarea"
-                          rows={2}
-                          placeholder="Add a message to your offer"
-                          value={offerForms[booking._id]?.message || ''}
-                          onChange={(e) =>
-                            handleOfferChange(booking._id, 'message', e.target.value)
-                          }
-                        />
-                      </Form.Group>
-                      <Button variant="primary" type="submit">
-                        Submit Offer
-                      </Button>
-                    </Form>
+                      Make an Offer
+                    </Button>
                   )}
                   <Button
                     variant="outline-primary"
@@ -186,6 +149,65 @@ const BookingRequests = () => {
                   </Button>
                 </Card.Body>
               </Card>
+
+              {/* Modal for Offer Input */}
+              <Modal show={showOfferModal === booking._id} onHide={() => setShowOfferModal(null)}>
+                <Modal.Header closeButton>
+                  <Modal.Title>Make an Offer for Booking #{booking._id.slice(-6)}</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                  <Form>
+                    <Form.Group className="mb-3">
+                      <Form.Label>
+                        <FaMoneyBillWave className="me-2" />
+                        Offer Price ($)
+                      </Form.Label>
+                      <Form.Control
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={offerPrice}
+                        onChange={(e) => setOfferPrice(e.target.value)}
+                        placeholder="Enter offer price"
+                        required
+                      />
+                    </Form.Group>
+                    <Form.Group className="mb-3">
+                      <Form.Label>Message (Optional)</Form.Label>
+                      <Form.Control
+                        as="textarea"
+                        rows={2}
+                        value={offerMessage}
+                        onChange={(e) => setOfferMessage(e.target.value)}
+                        placeholder="Add a message to your offer"
+                      />
+                    </Form.Group>
+                  </Form>
+                  {error && <Alert variant="danger">{error}</Alert>}
+                </Modal.Body>
+                <Modal.Footer>
+                  <Button variant="secondary" onClick={() => setShowOfferModal(null)}>
+                    Close
+                  </Button>
+                  <Button
+                    variant="primary"
+                    onClick={() => handleMakeOffer(booking._id)}
+                    disabled={submittingOffer || !offerPrice}
+                  >
+                    {submittingOffer ? (
+                      <Spinner
+                        as="span"
+                        animation="border"
+                        size="sm"
+                        role="status"
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      'Submit Offer'
+                    )}
+                  </Button>
+                </Modal.Footer>
+              </Modal>
             </Col>
           ))}
         </Row>

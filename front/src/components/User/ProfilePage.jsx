@@ -64,10 +64,10 @@ const EditProfilePage = () => {
       }
 
       const response = await axios.get('http://localhost:3000/api/users/me', {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+    });
 
       if (response.data.success) {
         const userData = response.data.user;

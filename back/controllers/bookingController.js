@@ -7,9 +7,7 @@ const Notification = require('../models/notificationModel');
 // Create a new booking request
 exports.createBooking = async (req, res) => {
   try {
-    console.log('req.user:', req.user);
-    const passengerId = req.user._id; // Use _id instead of userId
-    console.log('passengerId:', passengerId);
+    const passengerId = req.user._id;
     const {
       numberOfPersons,
       hasKids,
@@ -22,7 +20,6 @@ exports.createBooking = async (req, res) => {
       endDate
     } = req.body;
 
-    // Validate required fields
     if (!numberOfPersons || !paymentMethod || !destination || !numberOfCabins || !boatId || !startDate || !endDate) {
       return res.status(400).json({
         success: false,
@@ -30,7 +27,6 @@ exports.createBooking = async (req, res) => {
       });
     }
 
-    // Get boat and owner
     const boat = await Boat.findById(boatId);
     if (!boat) {
       return res.status(404).json({
@@ -39,10 +35,9 @@ exports.createBooking = async (req, res) => {
       });
     }
 
-    // Check boat availability
     const existingBooking = await Booking.findOne({
       boat: boatId,
-      status: { $in: ['accepted', 'pending', 'offered'] },
+      status: { $in: ['pending', 'offered', 'confirmed'] },
       $or: [
         { 
           startDate: { $lt: new Date(endDate) },
@@ -58,7 +53,6 @@ exports.createBooking = async (req, res) => {
       });
     }
 
-    // Create booking
     const booking = new Booking({
       passenger: passengerId,
       boatOwner: boat.owner,
@@ -79,23 +73,11 @@ exports.createBooking = async (req, res) => {
 
     await booking.save();
 
-    // Add booking to passenger's requests
     await User.findByIdAndUpdate(passengerId, {
       $push: { bookingRequests: booking._id }
     });
 
-    // Create notification for boat owner
     const passenger = await User.findById(passengerId);
-    if (!passenger) {
-      return res.status(404).json({
-        success: false,
-        message: 'Passenger not found'
-      });
-    }
-    console.log('passengerId:', passengerId);
-    console.log('boat.owner:', boat.owner);
-    console.log('passengerId from token:', req.user._id); // Update to _id
-
     const notification = new Notification({
       recipient: boat.owner,
       sender: passengerId,
@@ -125,13 +107,11 @@ exports.createBooking = async (req, res) => {
 // Get bookings for boat owner
 exports.getOwnerBookings = async (req, res) => {
   try {
-    const ownerId = req.user._id; // Changed from req.user.userId
-    console.log('Fetching bookings for ownerId:', ownerId); // Debug log
+    const ownerId = req.user._id;
     const bookings = await Booking.find({ boatOwner: ownerId })
       .populate('passenger', 'firstName lastName email phoneNumber')
       .populate('boat', 'name boatType boatCapacity');
 
-    console.log('Bookings found:', bookings); // Debug log
     res.status(200).json({
       success: true,
       bookings
@@ -146,24 +126,46 @@ exports.getOwnerBookings = async (req, res) => {
   }
 };
 
+// Boat owner makes offer
 exports.makeOffer = async (req, res) => {
   try {
     const { offerPrice, message } = req.body;
     const { bookingId } = req.params;
-    const ownerId = req.user._id; // Use _id
-    console.log('Authenticated ownerId:', ownerId);
+    const ownerId = req.user._id;
+
+    console.log('makeOffer request:', { bookingId, ownerId, offerPrice, message });
+
+    if (!offerPrice || isNaN(parseFloat(offerPrice))) {
+      return res.status(400).json({ success: false, message: 'Invalid or missing offer price' });
+    }
+
     const booking = await Booking.findById(bookingId).populate('boat');
     if (!booking) {
       return res.status(404).json({ success: false, message: 'Booking not found' });
     }
-    console.log('Booking boatOwner:', booking.boatOwner);
+
     if (booking.boatOwner.toString() !== ownerId.toString()) {
       return res.status(403).json({ success: false, message: 'Unauthorized' });
     }
-    booking.status = 'offered';
-    booking.offerPrice = offerPrice;
-    booking.offerMessage = message;
-    await booking.save();
+
+    booking.set({
+      status: 'offered',
+      offerPrice: parseFloat(offerPrice),
+      offerMessage: message || '',
+    });
+    await booking.save({ validateModifiedOnly: true });
+
+    const owner = await User.findById(ownerId);
+    const notification = new Notification({
+      recipient: booking.passenger,
+      sender: ownerId,
+      booking: booking._id,
+      type: 'booking_offer',
+      message: `New offer from ${owner.firstName} ${owner.lastName} for $${offerPrice}`,
+      isRead: false,
+    });
+    await notification.save();
+
     res.status(200).json({ success: true, message: 'Offer made successfully', booking });
   } catch (error) {
     console.error('Error in makeOffer:', error);
@@ -171,11 +173,10 @@ exports.makeOffer = async (req, res) => {
   }
 };
 
-
 // Passenger accepts offer
 exports.acceptOffer = async (req, res) => {
   try {
-    const passengerId = req.user.userId;
+    const passengerId = req.user._id;
     const { bookingId } = req.params;
 
     const booking = await Booking.findById(bookingId);
@@ -186,7 +187,7 @@ exports.acceptOffer = async (req, res) => {
       });
     }
 
-    if (booking.passenger.toString() !== passengerId) {
+    if (booking.passenger.toString() !== passengerId.toString()) {
       return res.status(403).json({
         success: false,
         message: 'Unauthorized'
@@ -200,11 +201,29 @@ exports.acceptOffer = async (req, res) => {
       });
     }
 
-    // Update booking status
-    booking.status = 'accepted';
+    // Re-check boat availability for the selected dates
+    const existingBooking = await Booking.findOne({
+      boat: booking.boat,
+      status: 'confirmed',
+      _id: { $ne: bookingId }, // Exclude the current booking
+      $or: [
+        { 
+          startDate: { $lt: new Date(booking.endDate) },
+          endDate: { $gt: new Date(booking.startDate) }
+        }
+      ]
+    });
+
+    if (existingBooking) {
+      return res.status(400).json({
+        success: false,
+        message: 'Boat is no longer available for the selected dates'
+      });
+    }
+
+    booking.status = 'confirmed';
     await booking.save();
 
-    // Update user references
     await User.findByIdAndUpdate(passengerId, {
       $pull: { bookingRequests: booking._id },
       $push: { confirmedBookings: booking._id }
@@ -215,14 +234,13 @@ exports.acceptOffer = async (req, res) => {
       $push: { confirmedBookings: booking._id }
     });
 
-    // Create notification for boat owner
     const passenger = await User.findById(passengerId);
     const notification = new Notification({
       recipient: booking.boatOwner,
       sender: passengerId,
       booking: booking._id,
-      type: 'booking_accepted',
-      message: `${passenger.firstName} ${passenger.lastName} accepted your offer`,
+      type: 'booking_confirmed',
+      message: `${passenger.firstName} ${passenger.lastName} accepted your offer and confirmed the booking`,
       isRead: false
     });
 
@@ -231,10 +249,75 @@ exports.acceptOffer = async (req, res) => {
     res.status(200).json({
       success: true,
       booking,
-      message: 'Offer accepted successfully'
+      message: 'Offer accepted and booking confirmed'
     });
   } catch (error) {
     console.error('Accept offer error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+// Passenger rejects offer
+exports.rejectOffer = async (req, res) => {
+  try {
+    const passengerId = req.user._id;
+    const { bookingId } = req.params;
+
+    const booking = await Booking.findById(bookingId);
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: 'Booking not found'
+      });
+    }
+
+    if (booking.passenger.toString() !== passengerId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized'
+      });
+    }
+
+    if (booking.status !== 'offered') {
+      return res.status(400).json({
+        success: false,
+        message: 'No offer to reject'
+      });
+    }
+
+    booking.status = 'canceled';
+    await booking.save();
+
+    await User.findByIdAndUpdate(passengerId, {
+      $pull: { bookingRequests: booking._id }
+    });
+
+    await User.findByIdAndUpdate(booking.boatOwner, {
+      $pull: { bookingOffers: booking._id }
+    });
+
+    const passenger = await User.findById(passengerId);
+    const notification = new Notification({
+      recipient: booking.boatOwner,
+      sender: passengerId,
+      booking: booking._id,
+      type: 'booking_canceled',
+      message: `${passenger.firstName} ${passenger.lastName} rejected your offer`,
+      isRead: false
+    });
+
+    await notification.save();
+
+    res.status(200).json({
+      success: true,
+      booking,
+      message: 'Offer rejected and booking canceled'
+    });
+  } catch (error) {
+    console.error('Reject offer error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error',
@@ -247,7 +330,7 @@ exports.acceptOffer = async (req, res) => {
 exports.getMessages = async (req, res) => {
   try {
     const { bookingId } = req.params;
-    const userId = req.user.userId;
+    const userId = req.user._id;
 
     const booking = await Booking.findById(bookingId);
     if (!booking) {
@@ -257,8 +340,7 @@ exports.getMessages = async (req, res) => {
       });
     }
 
-    // Check if user is part of this booking
-    if (booking.passenger.toString() !== userId && booking.boatOwner.toString() !== userId) {
+    if (booking.passenger.toString() !== userId.toString() && booking.boatOwner.toString() !== userId.toString()) {
       return res.status(403).json({
         success: false,
         message: 'Unauthorized'
@@ -288,7 +370,7 @@ exports.sendMessage = async (req, res) => {
   try {
     const { bookingId } = req.params;
     const { content } = req.body;
-    const senderId = req.user.userId;
+    const senderId = req.user._id;
 
     if (!content) {
       return res.status(400).json({
@@ -305,8 +387,7 @@ exports.sendMessage = async (req, res) => {
       });
     }
 
-    // Check if user is part of this booking
-    if (booking.passenger.toString() !== senderId && booking.boatOwner.toString() !== senderId) {
+    if (booking.passenger.toString() !== senderId.toString() && booking.boatOwner.toString() !== senderId.toString()) {
       return res.status(403).json({
         success: false,
         message: 'Unauthorized'
@@ -321,12 +402,10 @@ exports.sendMessage = async (req, res) => {
 
     await message.save();
 
-    // Determine recipient
-    const recipientId = booking.passenger.toString() === senderId 
+    const recipientId = booking.passenger.toString() === senderId.toString() 
       ? booking.boatOwner 
       : booking.passenger;
 
-    // Create notification
     const sender = await User.findById(senderId);
     const notification = new Notification({
       recipient: recipientId,
@@ -345,6 +424,70 @@ exports.sendMessage = async (req, res) => {
     });
   } catch (error) {
     console.error('Send message error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
+// Update passenger location
+exports.updatePassengerLocation = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const { currentLocation } = req.body;
+    const passengerId = req.user._id;
+
+    const booking = await Booking.findById(bookingId);
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Booking not found' });
+    }
+    if (booking.passenger.toString() !== passengerId.toString()) {
+      return res.status(403).json({ success: false, message: 'Unauthorized' });
+    }
+
+    booking.currentLocation = currentLocation;
+    await booking.save();
+
+    res.status(200).json({ success: true, message: 'Location updated successfully', booking });
+  } catch (error) {
+    console.error('Update passenger location error:', error);
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+};
+
+// Get single booking by ID
+exports.getBookingById = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const userId = req.user._id;
+
+    const booking = await Booking.findById(bookingId)
+      .populate('passenger', 'firstName lastName email phoneNumber')
+      .populate('boatOwner', 'firstName lastName email phoneNumber')
+      .populate('boat', 'name boatType boatCapacity photos amenities boatLicense');
+
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: 'Booking not found'
+      });
+    }
+
+    if (booking.passenger._id.toString() !== userId.toString() && booking.boatOwner._id.toString() !== userId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      booking
+    });
+  } catch (error) {
+    console.error('Get booking by ID error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error',

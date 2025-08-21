@@ -1,14 +1,13 @@
-// models/notificationModel.js
 const mongoose = require('mongoose');
 
 const notificationSchema = new mongoose.Schema({
   recipient: {
-    type: String,
+    type: mongoose.Schema.Types.ObjectId, // Fixed from String
     ref: 'User',
     required: true
   },
   sender: {
-    type: String,
+    type: mongoose.Schema.Types.ObjectId, // Fixed from String
     ref: 'User',
     required: true
   },
@@ -18,7 +17,7 @@ const notificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['new_booking', 'booking_offer', 'booking_accepted', 'new_message'],
+    enum: ['new_booking', 'booking_offer', 'booking_accepted', 'new_message'], // Added booking_offer
     required: true
   },
   message: {

@@ -1,4 +1,3 @@
-// src/App.jsx
 import { Routes, Route, Navigate } from "react-router-dom";
 import Login from "./components/login";
 import Registration from "./components/registration";
@@ -12,39 +11,90 @@ import Boats from './components/boat/Boats';
 import BoatDetails from './components/boat/BoatDetails';
 import ProfilePage from './components/User/ProfilePage';
 import BoatOwnersList from './components/User/BoatOwnersList';
-import CreateBooking from './components/booking/CreateBooking'; 
-import BookingRequests from './components/booking/BookingRequests'; 
 import BookingOffers from './components/booking/BookingOffers';
-import BookingDetails from './components/booking/BookingDetails'; 
-import ReservationPage from './components/booking/ReservationPage'; 
-
+import BookingDetails from './components/booking/BookingDetails';
+import ReservationPage from './components/booking/ReservationPage';
+import Notifications from './components/booking/Notifications'; 
 
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<Layout><Home /></Layout>} />   
+      {/* Public Routes */}
+      <Route path="/" element={<Layout><Home /></Layout>} />
       <Route path="/login" element={<Login />} />
       <Route path="/contact" element={<Contact />} />
-      <Route path="/profile" element={<Layout><ProfilePage /></Layout>} />
-      <Route path="/boatowner" element={<Layout><BoatOwnersList /></Layout>} />
       <Route path="/registration" element={<Registration />} />
-      <Route path="/Boats" element={<Layout><Boats /></Layout>} />
+      <Route path="/boats" element={<Layout><Boats /></Layout>} />
       <Route path="/boats/:id" element={<Layout><BoatDetails /></Layout>} />
-       <Route path="/reservation/:boatId" element={<ReservationPage />} />
-      {/* Booking Routes */}
-      <Route path="/create-booking" element={<Layout><CreateBooking /></Layout>} />
-      <Route path="/booking-requests" element={<Layout><BookingRequests /></Layout>} />
-      <Route path="/booking-offers" element={<Layout><BookingOffers /></Layout>} />
-      <Route path="/bookings/:id" element={<Layout><BookingDetails /></Layout>} />
-      
-      <Route path="/dashboard/*" element={
-        <ProtectedRoute requireBoatInfo>
-          <Dashboard />
-        </ProtectedRoute>
-      } />    
-      
-      <Route path="/complete-boat-info" element={<Layout><CompleteBoatInfo /></Layout>} />
-      <Route path="/home" element={<Layout><Home /></Layout>} />
+
+      {/* Protected Routes (assuming authentication required) */}
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <Layout><ProfilePage /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/boatowner"
+        element={
+          <ProtectedRoute>
+            <Layout><BoatOwnersList /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reservation/:boatId"
+        element={
+          <ProtectedRoute>
+            <Layout><ReservationPage /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/booking-offers"
+        element={
+          <ProtectedRoute>
+            <Layout><BookingOffers /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/bookings/:bookingId"
+        element={
+          <ProtectedRoute>
+            <Layout><BookingDetails /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/notifications"
+        element={
+          <ProtectedRoute>
+            <Layout><Notifications /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard/*"
+        element={
+          <ProtectedRoute requireBoatInfo>
+            <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/complete-boat-info"
+        element={
+          <ProtectedRoute>
+            <Layout><CompleteBoatInfo /></Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Redirects */}
+      <Route path="/home" element={<Navigate to="/" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

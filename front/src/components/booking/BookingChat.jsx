@@ -12,9 +12,16 @@ const BookingChat = ({ bookingId }) => {
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef(null);
 
+  const user = JSON.parse(localStorage.getItem('user'));
+  const userId = user?._id; // Fixed: get userId from localStorage
+
+  const token = localStorage.getItem('token'); // Added for auth
+
   const fetchMessages = async () => {
     try {
-      const response = await axios.get(`/api/bookings/${bookingId}/messages`);
+      const response = await axios.get(`http://localhost:3000/api/bookings/${bookingId}/messages`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setMessages(response.data.messages);
       setLoading(false);
     } catch (err) {
@@ -25,8 +32,6 @@ const BookingChat = ({ bookingId }) => {
 
   useEffect(() => {
     fetchMessages();
-    
-    // Set up polling for new messages
     const interval = setInterval(fetchMessages, 5000);
     return () => clearInterval(interval);
   }, [bookingId]);
@@ -45,11 +50,13 @@ const BookingChat = ({ bookingId }) => {
 
     setSending(true);
     try {
-      await axios.post(`/api/bookings/${bookingId}/messages`, {
+      await axios.post(`http://localhost:3000/api/bookings/${bookingId}/messages`, {
         content: newMessage
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
       });
       setNewMessage('');
-      fetchMessages(); // Refresh messages
+      fetchMessages();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to send message');
     } finally {

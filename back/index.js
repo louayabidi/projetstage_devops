@@ -18,9 +18,10 @@ const authRouter = require('./routers/authRouter');
 const boatRouter = require('./routers/boat');
 const passport = require('./middlewares/passport');
 const session = require('express-session');
-const User = require('./models/usersModel'); // Ensure User model is imported
-const Boat = require('./models/boat'); // Import Boat model for Socket.IO
+const User = require('./models/usersModel'); 
+const Boat = require('./models/boat'); 
 const bookingRouter = require('./routers/bookingRouter');
+const notificationRoutes = require('./routers/notificationRoutes');
 // Initialize Socket.IO
 const io = new Server(server, {
   cors: {
@@ -114,7 +115,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/users', userRouter);
 app.use('/api/boats', boatRouter);
 app.use('/api/bookings', bookingRouter);
-
+app.use('/api/notifications', notificationRoutes);
 app.get('/', (req, res) => {
   res.json({ message: 'Hello from the server' });
 });
@@ -189,22 +190,6 @@ passport.use(new LinkedInStrategy({
   }
 }));
 
-const JwtStrategy = require('passport-jwt').Strategy;
-const ExtractJwt = require('passport-jwt').ExtractJwt;
-passport.use(new JwtStrategy({
-  jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-  secretOrKey: process.env.TOKEN_SECRET
-}, async (jwt_payload, done) => {
-  try {
-    const user = await User.findById(jwt_payload.userId);
-    if (user) {
-      return done(null, { _id: user._id, userId: user._id, role: user.role });
-    }
-    return done(null, false);
-  } catch (error) {
-    return done(error, false);
-  }
-}));
 
 passport.serializeUser((user, done) => done(null, user.id));
 passport.deserializeUser(async (id, done) => {

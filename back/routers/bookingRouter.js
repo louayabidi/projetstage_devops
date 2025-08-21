@@ -6,8 +6,11 @@ const {
   getOwnerBookings,
   makeOffer,
   acceptOffer,
+  rejectOffer,
   getMessages,
-  sendMessage
+  sendMessage,
+  getBookingById,
+  updatePassengerLocation,
 } = require('../controllers/bookingController');
 
 // Passenger creates booking
@@ -38,6 +41,13 @@ router.post(
   acceptOffer
 );
 
+// Passenger rejects offer
+router.post(
+  '/:bookingId/reject',
+  passport.authenticate('jwt', { session: false }),
+  rejectOffer
+);
+
 // Get messages for a booking
 router.get(
   '/:bookingId/messages',
@@ -50,6 +60,20 @@ router.post(
   '/:bookingId/messages',
   passport.authenticate('jwt', { session: false }),
   sendMessage
+);
+
+// Get single booking by ID
+router.get(
+  '/:bookingId',
+  passport.authenticate('jwt', { session: false }),
+  getBookingById
+);
+
+// Update passenger location
+router.put(
+  '/:bookingId/location',
+  passport.authenticate('jwt', { session: false }),
+  updatePassengerLocation
 );
 
 module.exports = router;

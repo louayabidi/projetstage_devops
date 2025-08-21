@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Alert, Spinner, Badge, Form } from 'react-bootstrap';
-import { FaCalendar, FaUsers, FaShip, FaMoneyBillWave } from 'react-icons/fa'; // Replace FaBoat with FaShip
+import { Container, Row, Col, Card, Button, Alert, Spinner, Badge } from 'react-bootstrap';
+import { FaCalendar, FaUsers, FaShip, FaMoneyBillWave } from 'react-icons/fa';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
@@ -18,9 +17,9 @@ const BookingOffers = () => {
         const response = await axios.get('/api/bookings/owner', {
           headers: { Authorization: `Bearer ${token}` },
         });
-        // Filter bookings where an offer has been made
+        // Filter for 'offered' or 'confirmed' bookings
         const offeredBookings = response.data.bookings.filter(
-          (booking) => booking.status === 'offered' || booking.status === 'accepted'
+          (booking) => booking.status === 'offered' || booking.status === 'confirmed'
         );
         setBookings(offeredBookings);
       } catch (err) {
@@ -66,7 +65,7 @@ const BookingOffers = () => {
                     bg={
                       booking.status === 'offered'
                         ? 'info'
-                        : booking.status === 'accepted'
+                        : booking.status === 'confirmed'
                         ? 'success'
                         : 'secondary'
                     }
@@ -76,7 +75,7 @@ const BookingOffers = () => {
                 </Card.Header>
                 <Card.Body>
                   <p className="mb-1">
-                    <FaBoat className="me-2" />
+                    <FaShip className="me-2" />
                     <strong>Boat:</strong> {booking.boat?.name} ({booking.boat?.boatType})
                   </p>
                   <p className="mb-1">

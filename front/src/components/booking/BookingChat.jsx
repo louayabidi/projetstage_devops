@@ -13,14 +13,13 @@ const BookingChat = ({ bookingId }) => {
   const messagesEndRef = useRef(null);
 
   const user = JSON.parse(localStorage.getItem('user'));
-  const userId = user?._id; // Fixed: get userId from localStorage
-
-  const token = localStorage.getItem('token'); // Added for auth
+  const userId = user?._id;
+  const token = localStorage.getItem('token');
 
   const fetchMessages = async () => {
     try {
       const response = await axios.get(`http://localhost:3000/api/bookings/${bookingId}/messages`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       setMessages(response.data.messages);
       setLoading(false);
@@ -50,11 +49,11 @@ const BookingChat = ({ bookingId }) => {
 
     setSending(true);
     try {
-      await axios.post(`http://localhost:3000/api/bookings/${bookingId}/messages`, {
-        content: newMessage
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await axios.post(
+        `http://localhost:3000/api/bookings/${bookingId}/messages`,
+        { content: newMessage },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       setNewMessage('');
       fetchMessages();
     } catch (err) {
@@ -78,12 +77,12 @@ const BookingChat = ({ bookingId }) => {
   }
 
   return (
-    <Card className="h-100">
+    <Card className="mb-4">
       <Card.Header className="bg-primary text-white">
         Booking Discussion
       </Card.Header>
-      <Card.Body className="d-flex flex-column" style={{ minHeight: '400px' }}>
-        <div className="flex-grow-1 overflow-auto mb-3">
+      <Card.Body className="d-flex flex-column" style={{ maxHeight: '300px', minHeight: '200px' }}>
+        <div className="flex-grow-1 overflow-auto mb-3" style={{ maxHeight: '200px' }}>
           {messages.length === 0 ? (
             <div className="text-center text-muted my-4">
               No messages yet. Start the conversation!
@@ -91,8 +90,8 @@ const BookingChat = ({ bookingId }) => {
           ) : (
             <ListGroup variant="flush">
               {messages.map((message) => (
-                <ListGroup.Item 
-                  key={message._id} 
+                <ListGroup.Item
+                  key={message._id}
                   className={`mb-2 ${message.isOffer ? 'bg-light-warning' : ''}`}
                 >
                   <div className={`d-flex ${message.sender._id === userId ? 'justify-content-end' : ''}`}>
@@ -119,9 +118,8 @@ const BookingChat = ({ bookingId }) => {
             </ListGroup>
           )}
         </div>
-        
         <Form onSubmit={handleSendMessage}>
-          <Form.Group className="mb-3">
+          <Form.Group className="mb-0">
             <div className="input-group">
               <Form.Control
                 as="textarea"
@@ -130,10 +128,11 @@ const BookingChat = ({ bookingId }) => {
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 disabled={sending}
+                style={{ resize: 'none' }}
               />
-              <Button 
-                variant="primary" 
-                type="submit" 
+              <Button
+                variant="primary"
+                type="submit"
                 disabled={sending || !newMessage.trim()}
               >
                 <FaPaperPlane />

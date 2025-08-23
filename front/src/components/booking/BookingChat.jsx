@@ -18,7 +18,7 @@ const BookingChat = ({ bookingId }) => {
 
   const fetchMessages = async () => {
     try {
-      const response = await axios.get(`http://localhost:3000/api/bookings/${bookingId}/messages`, {
+      const response = await axios.get(`/api/bookings/${bookingId}/messages`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setMessages(response.data.messages);

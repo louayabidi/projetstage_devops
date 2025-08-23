@@ -22,7 +22,7 @@ const BookingDetails = () => {
     const fetchBooking = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get(`http://localhost:3000/api/bookings/${bookingId}`, {
+        const response = await axios.get(`/api/bookings/${bookingId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         console.log('Fetched booking data:', response.data.booking);

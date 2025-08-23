@@ -14,13 +14,13 @@ const Notifications = () => {
     const fetchNotifications = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get('http://localhost:3000/api/notifications', {
+        const response = await axios.get('/api/notifications', {
           headers: { Authorization: `Bearer ${token}` }
         });
         setNotifications(response.data.notifications);
 
         // Optionally mark all as read
-        await axios.post('http://localhost:3000/api/notifications/mark-all-read', {}, {
+        await axios.post('/api/notifications/mark-all-read', {}, {
           headers: { Authorization: `Bearer ${token}` }
         });
       } catch (err) {

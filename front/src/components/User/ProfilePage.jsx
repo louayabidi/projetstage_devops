@@ -63,11 +63,12 @@ const EditProfilePage = () => {
         console.log('Token format invalid:', e);
       }
 
-      const response = await axios.get('http://localhost:3000/api/users/me', {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-      },
-    });
+       const response = await axios.get('/api/users/me', {
+       headers: {
+       Authorization: `Bearer ${localStorage.getItem('token')}`,
+         },
+            });
+
 
       if (response.data.success) {
         const userData = response.data.user;

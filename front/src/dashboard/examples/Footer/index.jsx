@@ -1,104 +1,104 @@
-/*!
+import React from "react";
+import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import { FaFacebook, FaTwitter, FaInstagram, FaAnchor } from "react-icons/fa";
 
-=========================================================
-* Vision UI Free React - v1.0.0
-=========================================================
-
-* Product Page: https://www.creative-tim.com/product/vision-ui-free-react
-* Copyright 2021 Creative Tim (https://www.creative-tim.com/)
-* Licensed under MIT (https://github.com/creativetimofficial/vision-ui-free-react/blob/master LICENSE.md)
-
-* Design and Coded by Simmmple & Creative Tim
-
-=========================================================
-
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-*/
-
-// Vision UI Dashboard React components
-import VuiBox from "components/VuiBox";
-import VuiTypography from "components/VuiTypography";
-
-function Footer() {
+const Footer = () => {
   return (
-    <VuiBox
-      display="flex"
-      flexDirection={{ xs: "column", lg: "row" }}
-      justifyContent="space-between"
-      direction="row"
-      component="footer"
-      py={2}
-      pb={0}
+    <motion.footer
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="bg-transparent text-white py-6"
     >
-      <VuiBox item xs={12} sx={{ textAlign: "center" }}>
-        <VuiTypography
-          variant="button"
-          sx={{ textAlign: "center", fontWeight: "400 !important" }}
-          color="white"
-        >
-          @ 2021, Made with ❤️&nbsp;&nbsp;&nbsp; by{" "}
-          <VuiTypography
-            component="a"
-            variant="button"
-            href="https://simmmple.com/"
-            sx={{ textAlign: "center", fontWeight: "500 !important" }}
-            color="white"
-            mr="2px"
+      <div className="container mx-auto px-4">
+        <div className="flex flex-col lg:flex-row justify-between items-center bg-black/30 backdrop-blur-md rounded-lg p-4">
+          {/* Branding Section */}
+          <motion.div
+            className="mb-6 lg:mb-0 text-center lg:text-left"
+            whileHover={{ scale: 1.05 }}
           >
-            Simmmple
-          </VuiTypography>
-          &
-          <VuiTypography
-            ml="2px"
-            mr="2px"
-            component="a"
-            variant="button"
-            href="https://www.creative-tim.com/"
-            sx={{ textAlign: "center", fontWeight: "500 !important" }}
-            color="white"
-          >
-            Creative Tim
-          </VuiTypography>
-          for a better web
-        </VuiTypography>
-      </VuiBox>
-      <VuiBox item xs={10}>
-        <VuiBox display="flex" justifyContent="center" flexWrap="wrap" mb={3}>
-          <VuiBox mr={{ xs: "20px", lg: "46px" }}>
-            <VuiTypography
-              component="a"
-              href="https://www.creative-tim.com/templates"
-              variant="body2"
-              color="white"
+            <div className="flex items-center justify-center lg:justify-start mb-2">
+              <FaAnchor className="text-2xl mr-2 text-teal-300" />
+              <h2 className="text-xl font-bold text-white drop-shadow-md">
+                Boat Rental Admin
+              </h2>
+            </div>
+            <p className="text-sm opacity-80 drop-shadow-md">
+              © 2025 Boat Rental App. All rights reserved.
+            </p>
+          </motion.div>
+
+          {/* Navigation Links */}
+          <div className="flex flex-col sm:flex-row sm:space-x-8 mb-6 lg:mb-0">
+            <motion.div whileHover={{ scale: 1.1 }}>
+              <Link
+                to="/"
+                className="text-sm text-white hover:text-teal-300 transition duration-300 drop-shadow-md mb-2 sm:mb-0"
+              >
+                Home
+              </Link>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.1 }}>
+              <Link
+                to="/contact"
+                className="text-sm text-white hover:text-teal-300 transition duration-300 drop-shadow-md mb-2 sm:mb-0"
+              >
+                Sign Up
+              </Link>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.1 }}>
+              <Link
+                to="/boats"
+                className="text-sm text-white hover:text-teal-300 transition duration-300 drop-shadow-md mb-2 sm:mb-0"
+              >
+                Boats
+              </Link>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.1 }}>
+              <a
+                href="/support"
+                className="text-sm text-white hover:text-teal-300 transition duration-300 drop-shadow-md"
+              >
+                Support
+              </a>
+            </motion.div>
+          </div>
+
+          {/* Social Media Links */}
+          <div className="flex space-x-4">
+            <motion.a
+              href="https://facebook.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white hover:text-teal-300 transition duration-300 drop-shadow-md"
+              whileHover={{ scale: 1.2 }}
             >
-              Marketplace
-            </VuiTypography>
-          </VuiBox>
-          <VuiBox mr={{ xs: "20px", lg: "46px" }}>
-            <VuiTypography
-              component="a"
-              href="https://www.creative-tim.com/blog/"
-              variant="body2"
-              color="white"
+              <FaFacebook size={20} />
+            </motion.a>
+            <motion.a
+              href="https://twitter.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white hover:text-teal-300 transition duration-300 drop-shadow-md"
+              whileHover={{ scale: 1.2 }}
             >
-              Blog
-            </VuiTypography>
-          </VuiBox>
-          <VuiBox>
-            <VuiTypography
-              component="a"
-              href="https://www.creative-tim.com/license"
-              variant="body2"
-              color="white"
+              <FaTwitter size={20} />
+            </motion.a>
+            <motion.a
+              href="https://instagram.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white hover:text-teal-300 transition duration-300 drop-shadow-md"
+              whileHover={{ scale: 1.2 }}
             >
-              License
-            </VuiTypography>
-          </VuiBox>
-        </VuiBox>
-      </VuiBox>
-    </VuiBox>
+              <FaInstagram size={20} />
+            </motion.a>
+          </div>
+        </div>
+      </div>
+    </motion.footer>
   );
-}
+};
 
 export default Footer;

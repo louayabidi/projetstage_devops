@@ -68,6 +68,11 @@ const Header = () => {
         <Link to='/' style={{color: "#fff", textDecoration: "none"}}>Home</Link>
         <Link to='/boats' style={{color: "#fff", textDecoration: "none"}}>Explore Boats</Link>
         
+
+{isLoggedIn  && (  // Or 
+  <Link to='/calendar' style={{color: "#fff", textDecoration: "none"}}>Calendar</Link>
+)}
+
         {isLoggedIn ? (
           <>
             <Link to='/notifications' style={{color: "#fff", textDecoration: "none", position: 'relative'}}>

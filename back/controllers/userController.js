@@ -1,5 +1,7 @@
 const User = require('../models/usersModel');
 const mongoose = require('mongoose');
+const Boat = require('../models/boat');
+
 
 exports.getAllUsers = async (req, res) => {
   try {
@@ -87,6 +89,110 @@ exports.updateCurrentUser = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error updating profile'
+    });
+  }
+};
+
+
+
+
+exports.getUserDetails = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid user ID",
+      });
+    }
+
+    const user = await User.findById(id)
+      .select("-password -verificationCode -forgotPasswordCode")
+      .populate("boat");
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    console.error("Error fetching user details:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+
+exports.verifyBoatOwner = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const admin = req.user;
+
+    // Ensure the requester is an admin
+    if (admin.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Only admins can verify boat owners",
+      });
+    }
+
+    // Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid user ID",
+      });
+    }
+
+    // Find the user and ensure they are a boat owner
+    const user = await User.findById(userId).populate("boat");
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+    if (user.role !== "boat_owner") {
+      return res.status(400).json({
+        success: false,
+        message: "User is not a boat owner",
+      });
+    }
+
+    // Update user and boat verification status
+    user.verified = true;
+    if (user.boat) {
+      await Boat.findByIdAndUpdate(user.boat, { isVerified: true }, { new: true });
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: "No boat associated with this user",
+      });
+    }
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Boat owner and boat verified successfully",
+      user,
+    });
+  } catch (error) {
+    console.error("Error verifying boat owner:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error during verification",
+      error: error.message,
     });
   }
 };

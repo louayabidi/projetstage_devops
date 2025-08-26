@@ -11,7 +11,18 @@ const {
   sendMessage,
   getBookingById,
   updatePassengerLocation,
+  getWeather,
 } = require('../controllers/bookingController');
+
+
+
+// Get weather for a location
+router.get(
+  '/weather',
+  passport.authenticate('jwt', { session: false }),
+  getWeather
+);
+
 
 // Passenger creates booking
 router.post(
@@ -75,5 +86,7 @@ router.put(
   passport.authenticate('jwt', { session: false }),
   updatePassengerLocation
 );
+
+
 
 module.exports = router;

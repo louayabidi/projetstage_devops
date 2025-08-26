@@ -4,8 +4,7 @@ import Registration from "./components/registration";
 import Home from "./components/home";
 import Contact from "./components/Contact";
 import CompleteBoatInfo from "./components/CompleteBoatInfo";
-import Dashboard from "./dashboard/App.jsx";
-import Layout from "./components/Layout";
+import DashboardLayout from "./dashboard/App.jsx";
 import ProtectedRoute from './components/ProtectedRoute';
 import Boats from './components/boat/Boats';
 import BoatDetails from './components/boat/BoatDetails';
@@ -14,7 +13,21 @@ import BoatOwnersList from './components/User/BoatOwnersList';
 import BookingOffers from './components/booking/BookingOffers';
 import BookingDetails from './components/booking/BookingDetails';
 import ReservationPage from './components/booking/ReservationPage';
-import Notifications from './components/booking/Notifications'; 
+import Notifications from './components/booking/Notifications';
+import Dashboard from "./dashboard/layouts/dashboard";
+import Tables from "./dashboard/layouts/tables";
+import Billing from "./dashboard/layouts/billing";
+import RTL from "./dashboard/layouts/rtl";
+import Profile from "./dashboard/layouts/profile";
+import SignIn from "./dashboard/layouts/authentication/sign-in";
+import SignUp from "./dashboard/layouts/authentication/sign-up";
+import BoatOwnerDetail from "./dashboard/layouts/tables/data/BoatOwnerDetail";
+import Layout from "./components/Layout"; 
+import OwnerCalendar from './components/booking/OwnerCalendar';
+
+
+
+
 
 function App() {
   return (
@@ -22,12 +35,12 @@ function App() {
       {/* Public Routes */}
       <Route path="/" element={<Layout><Home /></Layout>} />
       <Route path="/login" element={<Login />} />
-      <Route path="/contact" element={<Contact />} />
-      <Route path="/registration" element={<Registration />} />
+      <Route path="/contact" element={<Layout><Contact /></Layout>} />
+      <Route path="/registration" element={<Layout><Registration /></Layout>} />
       <Route path="/boats" element={<Layout><Boats /></Layout>} />
       <Route path="/boats/:id" element={<Layout><BoatDetails /></Layout>} />
 
-      {/* Protected Routes (assuming authentication required) */}
+      {/* Protected Routes */}
       <Route
         path="/profile"
         element={
@@ -44,6 +57,18 @@ function App() {
           </ProtectedRoute>
         }
       />
+
+
+
+<Route
+  path="/calendar"
+  element={
+    <ProtectedRoute>
+      <Layout><OwnerCalendar /></Layout>
+    </ProtectedRoute>
+  }
+/>
+
       <Route
         path="/reservation/:boatId"
         element={
@@ -77,14 +102,6 @@ function App() {
         }
       />
       <Route
-        path="/dashboard/*"
-        element={
-          <ProtectedRoute requireBoatInfo>
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
         path="/complete-boat-info"
         element={
           <ProtectedRoute>
@@ -92,6 +109,25 @@ function App() {
           </ProtectedRoute>
         }
       />
+
+      {/* Dashboard Routes */}
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute requireBoatInfo>
+            <DashboardLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<Dashboard />} />
+        <Route path="tables" element={<Tables />} />
+        <Route path="billing" element={<Billing />} />
+        <Route path="rtl" element={<RTL />} />
+        <Route path="profile" element={<Profile />} />
+        <Route path="authentication/sign-in" element={<SignIn />} />
+        <Route path="authentication/sign-up" element={<SignUp />} />
+        <Route path="admin/users/:id" element={<BoatOwnerDetail />} />
+      </Route>
 
       {/* Redirects */}
       <Route path="/home" element={<Navigate to="/" replace />} />

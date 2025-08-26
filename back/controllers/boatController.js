@@ -134,7 +134,7 @@ exports.getBoatLocations = async (req, res) => {
 
 exports.getBoats = async (req, res) => {
   try {
-    const boats = await Boat.find();
+    const boats = await Boat.find({ isVerified: true }).populate('owner', 'firstName lastName');
     res.json(boats);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -167,79 +167,81 @@ exports.completeBoatInfo = [
   upload,
   async (req, res) => {
     try {
-      console.log('Authenticated user:', req.user);
+      console.log("Authenticated user:", req.user);
       if (!req.user) {
-        return res.status(401).json({ 
-          success: false, 
-          message: 'Not authenticated' 
+        return res.status(401).json({
+          success: false,
+          message: "Not authenticated",
         });
       }
 
-      const userId = req.user._id; // Use _id
-      const { name, boatType, boatCapacity, boatLicense } = req.body;
+      const userId = req.user._id;
+      const { name, boatType, boatCapacity, boatLicense, description, amenities } = req.body;
 
-      let amenities = [];
+      let parsedAmenities = [];
       try {
-        amenities = req.body.amenities ? JSON.parse(req.body.amenities) : [];
+        parsedAmenities = amenities ? JSON.parse(amenities) : [];
       } catch (e) {
-        console.error('Error parsing amenities:', e);
+        console.error("Error parsing amenities:", e);
       }
 
-      if (!name || !boatType || !boatCapacity || !boatLicense) {
+      if (!name || !boatType || !boatCapacity || !boatLicense || !description) {
         return res.status(400).json({
           success: false,
-          message: 'All boat fields are required'
+          message: "All boat fields are required",
         });
       }
 
-      const photos = req.files ? req.files.map(file => `/Uploads/boats/${file.filename}`) : [];
+      const photos = req.files ? req.files.map((file) => `/Uploads/boats/${file.filename}`) : [];
 
       const updatedBoat = await Boat.findOneAndUpdate(
         { owner: userId },
         {
+          owner: userId,
           name,
           boatType,
           boatCapacity: Number(boatCapacity),
           boatLicense,
-          amenities,
+          description, // New field
+          amenities: Array.isArray(parsedAmenities) ? parsedAmenities : [],
           photos,
-          isVerified: false
+          isVerified: false,
         },
-        { 
+        {
           new: true,
-          upsert: true
+          upsert: true,
         }
       );
 
       await User.findByIdAndUpdate(
         userId,
-        { boatInfoComplete: true },
+        { boat: updatedBoat._id, boatInfoComplete: true },
         { new: true }
       );
 
       return res.json({
         success: true,
-        message: 'Boat information submitted successfully',
-        boat: updatedBoat
+        message: "Boat information submitted successfully",
+        boat: updatedBoat,
       });
     } catch (error) {
-      console.error('CompleteBoatInfo error:', error);
+      console.error("CompleteBoatInfo error:", error);
       if (req.files && req.files.length > 0) {
-        req.files.forEach(file => {
+        req.files.forEach((file) => {
           try {
             fs.unlinkSync(path.join(uploadDir, file.filename));
           } catch (err) {
-            console.error('Error cleaning up file:', err);
+            console.error("Error cleaning up file:", err);
           }
         });
       }
       return res.status(500).json({
         success: false,
-        message: 'Server error updating boat info',
-        error: error.message
+        message: "Server error updating boat info",
+        error: error.message,
       });
     }
-  }
+  },
 ];
 
 exports.updateBoat = async (req, res) => {

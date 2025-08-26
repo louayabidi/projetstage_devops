@@ -12,12 +12,18 @@ const {
   uploadProfileImage,
   getCurrentUser,
   getAllBoatOwners,
+  getUserDetails,
+  verifyBoatOwner,
   
 	
 } = require('../controllers/userController');
 
 
-
+router.put(
+  "/:userId/verify",
+  passport.authenticate('jwt', { session: false }),
+  verifyBoatOwner
+);
 
 router.post('/upload-profile',
   passport.authenticate('jwt', { session: false }),
@@ -27,7 +33,11 @@ router.post('/upload-profile',
 
 router.get('/', getAllUsers);
 
-
+router.get(
+  "/:id/details",
+  passport.authenticate("jwt", { session: false }),
+  getUserDetails
+);
 
 router.patch('/me',
   passport.authenticate('jwt', { session: false }),

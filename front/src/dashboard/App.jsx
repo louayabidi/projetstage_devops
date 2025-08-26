@@ -1,48 +1,34 @@
 import { useState, useEffect, useMemo } from "react";
-import routes from "./routes";
 import VuiBox from "./components/VuiBox";
-// react-router components
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
-import Configurator from "./examples/Configurator";
-
-// @mui material components
+import { Outlet, useLocation } from "react-router-dom";
 import { ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import Icon from "@mui/material/Icon";
-
-// Vision UI Dashboard React example components
 import Sidenav from "./examples/Sidenav";
-
-// Vision UI Dashboard React themes
+import Configurator from "./examples/Configurator";
 import theme from "assets/theme";
 import themeRTL from "assets/theme/theme-rtl";
-
-// RTL plugins
 import rtlPlugin from "stylis-plugin-rtl";
 import { CacheProvider } from "@emotion/react";
 import createCache from "@emotion/cache";
-
-// Vision UI Dashboard React contexts
 import { useVisionUIController, setMiniSidenav, setOpenConfigurator } from "./context";
+import routes from "./routes";
 
-export default function App() {
+export default function DashboardLayout() {
   const [controller, dispatch] = useVisionUIController();
   const { miniSidenav, direction, layout, openConfigurator, sidenavColor } = controller;
   const [onMouseEnter, setOnMouseEnter] = useState(false);
   const [rtlCache, setRtlCache] = useState(null);
   const { pathname } = useLocation();
 
-  // Cache for the rtl
   useMemo(() => {
     const cacheRtl = createCache({
       key: "rtl",
       stylisPlugins: [rtlPlugin],
     });
-
     setRtlCache(cacheRtl);
   }, []);
 
-  // Open sidenav when mouse enter on mini sidenav
   const handleOnMouseEnter = () => {
     if (miniSidenav && !onMouseEnter) {
       setMiniSidenav(dispatch, false);
@@ -50,7 +36,6 @@ export default function App() {
     }
   };
 
-  // Close sidenav when mouse leave mini sidenav
   const handleOnMouseLeave = () => {
     if (onMouseEnter) {
       setMiniSidenav(dispatch, true);
@@ -58,39 +43,16 @@ export default function App() {
     }
   };
 
-  // Change the openConfigurator state
   const handleConfiguratorOpen = () => setOpenConfigurator(dispatch, !openConfigurator);
 
-  // Setting the dir attribute for the body element
   useEffect(() => {
     document.body.setAttribute("dir", direction);
   }, [direction]);
 
-  // Setting page scroll to 0 when changing the route
   useEffect(() => {
     document.documentElement.scrollTop = 0;
     document.scrollingElement.scrollTop = 0;
   }, [pathname]);
-
-const getRoutes = (allRoutes) =>
-  allRoutes.flatMap((route) => {
-    if (route.collapse) {
-      return getRoutes(route.collapse);
-    }
-
-    if (route.route && route.component) {
-      const Component = route.component;  // <-- récupère le composant
-      return (
-        <Route
-          key={route.key}
-          path={route.route}
-          element={<Component />}   // <-- ici on utilise JSX avec majuscule
-        />
-      );
-    }
-    return [];
-  });
-
 
   const configsButton = (
     <VuiBox
@@ -135,10 +97,7 @@ const getRoutes = (allRoutes) =>
           </>
         )}
         {layout === "vr" && <Configurator />}
-        <Routes>
-          {getRoutes(routes)}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
+        <Outlet />
       </ThemeProvider>
     </CacheProvider>
   ) : (
@@ -159,11 +118,7 @@ const getRoutes = (allRoutes) =>
         </>
       )}
       {layout === "vr" && <Configurator />}
-      <Routes>
-        {getRoutes(routes)}
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
+      <Outlet />
     </ThemeProvider>
   );
 }
-

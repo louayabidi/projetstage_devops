@@ -14,6 +14,7 @@ const ReservationPage = () => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
   const [userLocation, setUserLocation] = useState([0, 0]); // [lng, lat]
+  const [destinationLocation, setDestinationLocation] = useState([0, 0]); // [lng, lat]
 
   const [formData, setFormData] = useState({
     numberOfPersons: 1,
@@ -23,7 +24,10 @@ const ReservationPage = () => {
       type: 'Point',
       coordinates: [0, 0], // [lng, lat]
     },
-    destination: '',
+    destination: {
+      type: 'Point',
+      coordinates: [0, 0], // [lng, lat]
+    },
     numberOfCabins: 1,
     startDate: '',
     endDate: '',
@@ -89,21 +93,31 @@ const ReservationPage = () => {
         [name]: checked,
       }));
     } else if (name === 'departureLat' || name === 'departureLng') {
+      const newCoordinates =
+        name === 'departureLat'
+          ? [formData.departureLocation.coordinates[0], parseFloat(value) || 0]
+          : [parseFloat(value) || 0, formData.departureLocation.coordinates[1]];
       setFormData((prev) => ({
         ...prev,
         departureLocation: {
           ...prev.departureLocation,
-          coordinates:
-            name === 'departureLat'
-              ? [prev.departureLocation.coordinates[0], parseFloat(value) || 0]
-              : [parseFloat(value) || 0, prev.departureLocation.coordinates[1]],
+          coordinates: newCoordinates,
         },
       }));
-      setUserLocation(
-        name === 'departureLat'
-          ? [formData.departureLocation.coordinates[0], parseFloat(value) || 0]
-          : [parseFloat(value) || 0, formData.departureLocation.coordinates[1]]
-      );
+      setUserLocation(newCoordinates);
+    } else if (name === 'destinationLat' || name === 'destinationLng') {
+      const newCoordinates =
+        name === 'destinationLat'
+          ? [formData.destination.coordinates[0], parseFloat(value) || 0]
+          : [parseFloat(value) || 0, formData.destination.coordinates[1]];
+      setFormData((prev) => ({
+        ...prev,
+        destination: {
+          ...prev.destination,
+          coordinates: newCoordinates,
+        },
+      }));
+      setDestinationLocation(newCoordinates);
     } else {
       setFormData((prev) => ({
         ...prev,
@@ -112,7 +126,7 @@ const ReservationPage = () => {
     }
   };
 
-  const handleMapLocationChange = (newCoordinates) => {
+  const handleDepartureLocationChange = (newCoordinates) => {
     setFormData((prev) => ({
       ...prev,
       departureLocation: {
@@ -121,6 +135,17 @@ const ReservationPage = () => {
       },
     }));
     setUserLocation(newCoordinates);
+  };
+
+  const handleDestinationLocationChange = (newCoordinates) => {
+    setFormData((prev) => ({
+      ...prev,
+      destination: {
+        type: 'Point',
+        coordinates: newCoordinates,
+      },
+    }));
+    setDestinationLocation(newCoordinates);
   };
 
   const handleSubmit = async (e) => {
@@ -162,8 +187,8 @@ const ReservationPage = () => {
         }, 30000); // Update every 30 seconds
 
         setTimeout(() => {
-          navigate(`boats`);
-          clearInterval(intervalId); // Stop updates after navigation (optional)
+          navigate(`/boats`);
+          clearInterval(intervalId); // Stop updates after navigation
         }, 2000);
       }
     } catch (err) {
@@ -337,7 +362,7 @@ const ReservationPage = () => {
                     </div>
                     <MapComponent
                       initialPosition={userLocation}
-                      onLocationChange={handleMapLocationChange}
+                      onLocationChange={handleDepartureLocationChange}
                     />
                     <p className="text-gray-500 text-sm mt-2 italic">
                       Real-time location tracking enabled. Your position will update automatically as you move. You can also click on the map to set a custom location.
@@ -346,17 +371,38 @@ const ReservationPage = () => {
 
                   <div className="mb-4">
                     <label className="block text-gray-700 font-medium mb-2">
-                      Destination *
+                      <FaMapMarkerAlt className="inline mr-2" />
+                      Destination Location *
                     </label>
-                    <input
-                      type="text"
-                      name="destination"
-                      value={formData.destination}
-                      onChange={handleInputChange}
-                      placeholder="Enter your destination"
-                      required
-                      className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <input
+                        type="number"
+                        step="any"
+                        placeholder="Latitude"
+                        name="destinationLat"
+                        value={formData.destination.coordinates[1]}
+                        onChange={handleInputChange}
+                        required
+                        className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <input
+                        type="number"
+                        step="any"
+                        placeholder="Longitude"
+                        name="destinationLng"
+                        value={formData.destination.coordinates[0]}
+                        onChange={handleInputChange}
+                        required
+                        className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <MapComponent
+                      initialPosition={destinationLocation}
+                      onLocationChange={handleDestinationLocationChange}
                     />
+                    <p className="text-gray-500 text-sm mt-2 italic">
+                      Click on the map to set your destination location.
+                    </p>
                   </div>
 
                   <div className="mb-4">

@@ -33,8 +33,11 @@ const Boats = () => {
   const filteredBoats = boats.filter(boat => {
     const name = boat?.name?.toLowerCase() || '';
     const type = boat?.boatType?.toLowerCase() || '';
+    const description = boat?.description?.toLowerCase() || ''; // Include description in search
     return (
-      (name.includes(searchTerm.toLowerCase()) || type.includes(searchTerm.toLowerCase())) &&
+      (name.includes(searchTerm.toLowerCase()) ||
+       type.includes(searchTerm.toLowerCase()) ||
+       description.includes(searchTerm.toLowerCase())) &&
       (filterType === 'all' || boat?.boatType === filterType)
     );
   });
@@ -84,7 +87,7 @@ const Boats = () => {
               <FaSearch className="search-icon text-primary" aria-hidden="true" />
               <input
                 type="text"
-                placeholder="Search by boat name or type..."
+                placeholder="Search by boat name, type, or description..."
                 className="form-control ps-5 py-2 border-primary"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -120,100 +123,103 @@ const Boats = () => {
           <p>Try adjusting your search or filter criteria</p>
         </Alert>
       ) : (
-      <Row xs={1} md={2} className="g-4">
-  {filteredBoats.map(boat => (
-    <Col key={boat._id}>
-      <Card
-        className="boat-card shadow-sm h-100"
-        onClick={() => navigate(`/boats/${boat._id}`)}
-        role="button"
-        aria-label={`View details for ${boat.name}`}
-      >
-        <div className="image-container">
-          {boat.photos?.[0] ? (
-            <Card.Img
-              variant="top"
-              src={`http://localhost:3000${boat.photos[0]}`}
-              alt={boat.name}
-              className="boat-image"
-              loading="lazy"
-              onError={(e) => {
-                e.target.src = '/images/default-boat.jpg';
-              }}
-            />
-          ) : (
-            <div className="no-image-placeholder bg-light d-flex align-items-center justify-content-center">
-              <FaShip size={50} className="text-primary" aria-hidden="true" />
-            </div>
-          )}
-          {boat.isVerified && (
-            <span className="verified-badge">
-              <FaCheckCircle className="me-1" aria-hidden="true" /> Verified
-            </span>
-          )}
-        </div>
+        <Row xs={1} md={2} className="g-4">
+          {filteredBoats.map(boat => (
+            <Col key={boat._id}>
+              <Card
+                className="boat-card shadow-sm h-100"
+                onClick={() => navigate(`/boats/${boat._id}`)}
+                role="button"
+                aria-label={`View details for ${boat.name}`}
+              >
+                <div className="image-container">
+                  {boat.photos?.[0] ? (
+                    <Card.Img
+                      variant="top"
+                      src={`http://localhost:3000${boat.photos[0]}`}
+                      alt={boat.name}
+                      className="boat-image"
+                      loading="lazy"
+                      onError={(e) => {
+                        e.target.src = '/images/default-boat.jpg';
+                      }}
+                    />
+                  ) : (
+                    <div className="no-image-placeholder bg-light d-flex align-items-center justify-content-center">
+                      <FaShip size={50} className="text-primary" aria-hidden="true" />
+                    </div>
+                  )}
+                  {boat.isVerified && (
+                    <span className="verified-badge">
+                      <FaCheckCircle className="me-1" aria-hidden="true" /> Verified
+                    </span>
+                  )}
+                </div>
 
-        <Card.Body className="d-flex flex-column">
-          <Card.Title className="d-flex justify-content-between align-items-center mb-2">
-            <span className="boat-name text-truncate">{boat.name}</span>
-            {!boat.isVerified && (
-              <span className="text-warning small">
-                <FaRegClock className="me-1" aria-hidden="true" /> Pending
-              </span>
-            )}
-          </Card.Title>
+                <Card.Body className="d-flex flex-column">
+                  <Card.Title className="d-flex justify-content-between align-items-center mb-2">
+                    <span className="boat-name text-truncate">{boat.name}</span>
+                    {!boat.isVerified && (
+                      <span className="text-warning small">
+                        <FaRegClock className="me-1" aria-hidden="true" /> Pending
+                      </span>
+                    )}
+                  </Card.Title>
 
-          <Card.Subtitle className="mb-3 text-primary text-truncate">
-            {boat.boatType}
-          </Card.Subtitle>
+                  <Card.Subtitle className="mb-3 text-primary text-truncate">
+                    {boat.boatType}
+                  </Card.Subtitle>
 
-          <div className="boat-details mb-3">
-            <div className="detail-item">
-              <FaUsers className="me-2 text-primary" aria-hidden="true" />
-              <span>Up to {boat.boatCapacity} guests</span>
-            </div>
-            {boat.boatLicense && (
-              <div className="detail-item small text-muted text-truncate">
-                License: {boat.boatLicense}
-              </div>
-            )}
-          </div>
+                  <Card.Text className="mb-3 text-muted text-truncate">
+                    {boat.description ? boat.description.substring(0, 100) + (boat.description.length > 100 ? '...' : '') : 'No description available'}
+                  </Card.Text>
 
-          {boat.amenities?.length > 0 && (
-            <div className="amenities-section mt-auto">
-              <h6 className="text-primary mb-2">Premium Amenities:</h6>
-              <div className="amenities-list">
-                {boat.amenities.slice(0, 3).map((amenity, index) => (
-                  <span key={index} className="badge bg-light text-primary me-1 mb-1">
-                    {amenity}
-                  </span>
-                ))}
-                {boat.amenities.length > 3 && (
-                  <span className="badge bg-light text-primary">
-                    +{boat.amenities.length - 3} more
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-        </Card.Body>
+                  <div className="boat-details mb-3">
+                    <div className="detail-item">
+                      <FaUsers className="me-2 text-primary" aria-hidden="true" />
+                      <span>Up to {boat.boatCapacity} guests</span>
+                    </div>
+                    {boat.boatLicense && (
+                      <div className="detail-item small text-muted text-truncate">
+                        License: {boat.boatLicense}
+                      </div>
+                    )}
+                  </div>
 
-        <Card.Footer className="bg-white border-top-0 text-center">
-          <Button
-            variant="primary"
-            href={`/boats/${boat._id}`}
-            className="px-4 py-2 rounded-pill w-100"
-            onClick={(e) => e.stopPropagation()}
-            aria-label={`Explore ${boat.name}`}
-          >
-            Explore This Vessel
-          </Button>
-        </Card.Footer>
-      </Card>
-    </Col>
-  ))}
-</Row>
+                  {boat.amenities?.length > 0 && (
+                    <div className="amenities-section mt-auto">
+                      <h6 className="text-primary mb-2">Premium Amenities:</h6>
+                      <div className="amenities-list">
+                        {boat.amenities.slice(0, 3).map((amenity, index) => (
+                          <span key={index} className="badge bg-light text-primary me-1 mb-1">
+                            {amenity}
+                          </span>
+                        ))}
+                        {boat.amenities.length > 3 && (
+                          <span className="badge bg-light text-primary">
+                            +{boat.amenities.length - 3} more
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </Card.Body>
 
+                <Card.Footer className="bg-white border-top-0 text-center">
+                  <Button
+                    variant="primary"
+                    href={`/boats/${boat._id}`}
+                    className="px-4 py-2 rounded-pill w-100"
+                    onClick={(e) => e.stopPropagation()}
+                    aria-label={`Explore ${boat.name}`}
+                  >
+                    Explore This Vessel
+                  </Button>
+                </Card.Footer>
+              </Card>
+            </Col>
+          ))}
+        </Row>
       )}
     </Container>
   );

@@ -1,15 +1,16 @@
+
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { styles } from "../styles";
-import { EarthCanvas } from "./canvas";
 import { SectionWrapper } from "../hoc";
 import { slideIn } from "../utils/motion";
 import GoogleSvg from "../assets/icons8-google.svg";
 import FacebookSVG from "../assets/icons8-facebook.svg";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import backgroundImage from "../assets/backgroundlogin.jpg";
+import { EarthCanvas } from "./canvas";
+import {jwtDecode} from "jwt-decode"; // Add jwt-decode import
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -31,16 +32,18 @@ const Login = () => {
       const response = await axios.post("/api/auth/signin", formData, { withCredentials: true });
       console.log("Login successful - Response:", response.data);
 
-      localStorage.setItem("token", response.data.token);
+      const token = response.data.token;
+      localStorage.setItem("token", token);
 
-      const tokenPayload = JSON.parse(atob(response.data.token.split('.')[1]));
+      const tokenPayload = jwtDecode(token); // Use jwtDecode instead of manual parsing
       console.log("Token payload:", tokenPayload);
+      localStorage.setItem("userId", tokenPayload._id); // Set userId
       const userRole = tokenPayload.role;
 
       if (userRole === 'admin') {
         navigate("/dashboard");
       } else {
-        navigate("/home:");
+        navigate("/home");
       }
     } catch (error) {
       console.error("Login error - Full error:", error.response?.data || error.message);
@@ -61,146 +64,131 @@ const Login = () => {
 
   return (
     <div
-      style={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        minHeight: "100vh",
-        width: "100vw",
-        backgroundImage: `url(${backgroundImage})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        padding: "20px",
-      }}
+      className="relative flex flex-col lg:flex-row items-center justify-center min-h-screen w-full bg-cover bg-center bg-no-repeat p-4 sm:p-8"
+      style={{ backgroundImage: `url(${backgroundImage})` }}
     >
+      {/* Gradient Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-r from-blue-900/70 to-teal-700/70 z-0"></div>
+
       <motion.div
         variants={slideIn("left", "tween", 0.7, 1)}
-        style={{
-          flex: 1,
-          maxWidth: "600px",
-          backgroundColor: "#f2f2f2",
-          padding: "50px",
-          borderRadius: "16px",
-          boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
-        }}
+        className="relative lg:w-1/2 w-full max-w-lg bg-white/95 backdrop-blur-xl p-8 sm:p-12 rounded-3xl shadow-2xl z-10"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5 }}
       >
-        <h3 className={styles.sectionHeadText} style={{ fontSize: "48px" }}>Connexion</h3>
-        
-        {error && <p style={{ color: "red" }}>{error}</p>}
-        <form
-          onSubmit={handleLogin}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "32px",
-            marginTop: "32px",
-          }}
-        >
-          <label style={{ fontSize: "20px" }}>
-            <span>Email</span>
+        <h3 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-teal-500 mb-4 text-center">
+          Set Sail with Us
+        </h3>
+        <p className="text-gray-700 text-lg text-center mb-8">
+          Log in to embark on your adventure!
+        </p>
+
+        {error && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-red-500 text-sm text-center mb-6 p-3 bg-red-100 rounded-lg"
+          >
+            {error}
+          </motion.p>
+        )}
+
+        <form onSubmit={handleLogin} className="flex flex-col gap-6">
+          <label className="flex flex-col">
+            <span className="text-gray-800 font-semibold mb-2">Email</span>
             <input
               type="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
               required
-              style={inputStyle}
+              className="p-4 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-4 focus:ring-blue-400 transition duration-300 placeholder-gray-400"
+              placeholder="Enter your email"
             />
           </label>
 
-          <label style={{ fontSize: "20px" }}>
-            <span>Password</span>
-            <div style={{ position: "relative" }}>
+          <label className="flex flex-col">
+            <span className="text-gray-800 font-semibold mb-2">Password</span>
+            <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
                 required
-                style={inputStyle}
+                className="w-full p-4 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-4 focus:ring-blue-400 transition duration-300 placeholder-gray-400"
+                placeholder="Enter your password"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                style={{
-                  position: "absolute",
-                  top: "50%",
-                  right: "10px",
-                  transform: "translateY(-50%)",
-                  background: "transparent",
-                  border: "none",
-                }}
+                className="absolute top-1/2 right-4 transform -translate-y-1/2 text-gray-600 hover:text-blue-600 transition duration-200"
               >
-                {showPassword ? <FaEyeSlash /> : <FaEye />}
+                {showPassword ? <FaEyeSlash size={22} /> : <FaEye size={22} />}
               </button>
             </div>
           </label>
 
-          <button
+          <motion.button
             type="submit"
-            style={{
-              backgroundColor: "#ff6b6b",
-              color: "white",
-              padding: "20px 40px",
-              borderRadius: "12px",
-              border: "none",
-              cursor: "pointer",
-              fontSize: "22px",
-              fontWeight: "bold",
-              transition: "background-color 0.3s ease",
-            }}
+            className="bg-gradient-to-r from-blue-600 to-teal-500 text-white py-4 rounded-xl font-bold text-lg hover:from-blue-700 hover:to-teal-600 transition duration-300 shadow-md"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
-            Connexion
-          </button>
+            Log In
+          </motion.button>
         </form>
 
-        <div style={{ display: "flex", gap: "16px", marginTop: "32px" }}>
-          <button onClick={handleFacebookLogin} style={socialLoginButtonStyle}>
-            <img src={FacebookSVG} alt="Facebook" style={{ marginRight: "8px" }} />
-            Connexion with Facebook
-          </button>
-
-          <button onClick={handleGoogleLogin} style={socialLoginButtonStyle}>
-            <img src={GoogleSvg} alt="Google" style={{ marginRight: "8px" }} />
-            Connexion with Google
-          </button>
+        <div className="flex items-center justify-between my-6">
+          <hr className="w-1/3 border-gray-300" />
+          <span className="text-gray-400 font-medium">OR</span>
+          <hr className="w-1/3 border-gray-300" />
         </div>
+
+        <div className="flex flex-col sm:flex-row gap-4">
+          <motion.button
+            onClick={handleFacebookLogin}
+            className="flex-1 flex items-center justify-center bg-blue-800 text-white py-3 rounded-xl hover:bg-blue-900 transition duration-300 shadow-md"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <img src={FacebookSVG} alt="Facebook" className="w-6 h-6 mr-3" />
+            Login with Facebook
+          </motion.button>
+          <motion.button
+            onClick={handleGoogleLogin}
+            className="flex-1 flex items-center justify-center bg-red-600 text-white py-3 rounded-xl hover:bg-red-700 transition duration-300 shadow-md"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <img src={GoogleSvg} alt="Google" className="w-6 h-6 mr-3" />
+            Login with Google
+          </motion.button>
+        </div>
+
+        <p className="text-center text-gray-600 mt-8">
+          New to the crew?{" "}
+          <a
+            href="/contact"
+            className="text-blue-600 font-semibold hover:text-blue-800 transition duration-200"
+          >
+            Sign Up
+          </a>
+        </p>
       </motion.div>
 
       <motion.div
         variants={slideIn("right", "tween", 0.2, 1)}
-        style={{
-          flex: 1,
-          maxWidth: "800px",
-          height: "800px",
-        }}
+        className="lg:w-1/2 w-full max-w-3xl h-[400px] sm:h-[600px] lg:h-[800px] mt-10 lg:mt-0 z-10"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8 }}
       >
         <EarthCanvas />
       </motion.div>
     </div>
   );
-};
-
-const inputStyle = {
-  backgroundColor: "#dbcece",
-  padding: "20px 24px",
-  borderRadius: "12px",
-  border: "none",
-  outline: "none",
-  fontSize: "18px",
-};
-
-const socialLoginButtonStyle = {
-  backgroundColor: "#dbdbdb",
-  color: "black",
-  padding: "10px 20px",
-  borderRadius: "12px",
-  border: "none",
-  display: "flex",
-  alignItems: "center",
-  gap: "8px",
-  cursor: "pointer",
 };
 
 export default SectionWrapper(Login, "login");

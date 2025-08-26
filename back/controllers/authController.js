@@ -39,38 +39,26 @@ exports.verifyBoatOwner = async (req, res) => {
 
 exports.signup = async (req, res) => {
   try {
-    const { firstName, lastName, email, password, phoneNumber, role, boatInfo } = req.body;
-    if (!firstName || !lastName || !email || !password || !role) {
-      return res.status(400).json({ success: false, message: 'Missing required fields' });
+    const { firstName, lastName, email, password, phoneNumber, role, photo, age, adminInfo } = req.body;
+
+    if (!firstName || !lastName || !email || !password || !role || !phoneNumber || !age) {
+      return res.status(400).json({ success: false, message: "Missing required fields" });
     }
+
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ success: false, message: 'Email already exists' });
+      return res.status(400).json({ success: false, message: "Email already exists" });
     }
-    const trimmedPassword = password.trim();
-    console.log('Signup raw password:', password);
-    console.log('Signup trimmed password:', trimmedPassword);
-    const hashedPassword = await doHash(trimmedPassword, 12);
-    console.log('Hashed password:', hashedPassword);
 
-    // Determine if boatInfo is complete
-    let boatInfoComplete = role !== 'boat_owner';
-    let requiresBoatInfo = false;
-    if (role === 'boat_owner') {
-      // Check if boatInfo is provided and complete
-      if (
-        !boatInfo ||
-        !boatInfo.boatLicense ||
-        !boatInfo.boatType ||
-        !boatInfo.boatCapacity ||
-        !boatInfo.name
-      ) {
-        boatInfoComplete = false;
-        requiresBoatInfo = true; // Incomplete boat info, redirect to complete it
-      } else {
-        boatInfoComplete = true; // Complete boat info, no need for additional step
-      }
-    }
+    const trimmedPassword = password.trim();
+    console.log("Signup raw password:", password);
+    console.log("Signup trimmed password:", trimmedPassword);
+    const hashedPassword = await bcrypt.hash(trimmedPassword, 12);
+    console.log("Hashed password:", hashedPassword);
+
+    // Set boatInfoComplete and requiresBoatInfo based on role
+    let boatInfoComplete = role !== "boat_owner";
+    let requiresBoatInfo = role === "boat_owner";
 
     const user = new User({
       firstName,
@@ -78,48 +66,40 @@ exports.signup = async (req, res) => {
       email,
       password: hashedPassword,
       phoneNumber,
+      photo,
+      age,
       role,
       boatInfoComplete,
-      verified: role === 'admin' || role === 'passenger',
+      verified: role === "admin" || role === "passenger",
+      ...(role === "admin" && { adminInfo }),
     });
+
     const savedUser = await user.save();
-    console.log('User saved with password hash:', savedUser.password);
+    console.log("User saved with password hash:", savedUser.password);
 
-    if (role === 'boat_owner') {
-      const boat = new Boat({
-        owner: savedUser._id,
-        name: boatInfo?.name || '',
-        boatLicense: boatInfo?.boatLicense || '',
-        boatType: boatInfo?.boatType || '',
-        boatCapacity: boatInfo?.boatCapacity || 0,
-        isVerified: false,
-      });
-      await boat.save();
-      savedUser.boat = boat._id;
-      await savedUser.save();
-    }
-
-    const userFromDb = await User.findById(savedUser._id).select('+password');
-    console.log('User password hash from DB after save:', userFromDb.password);
+    const userFromDb = await User.findById(savedUser._id).select("+password");
+    console.log("User password hash from DB after save:", userFromDb.password);
     savedUser.password = undefined;
 
     const token = jwt.sign(
       { _id: savedUser._id, email: savedUser.email, role: savedUser.role },
       process.env.TOKEN_SECRET,
-      { expiresIn: '1d' }
+      { expiresIn: "1d" }
     );
 
     res.status(201).json({
       success: true,
       token,
       user: savedUser,
-      requiresBoatInfo, // Include the flag in the response
+      requiresBoatInfo,
     });
   } catch (error) {
-    console.error('Signup error:', error);
-    res.status(500).json({ success: false, message: 'Server error during signup', error: error.message });
+    console.error("Signup error:", error);
+    res.status(500).json({ success: false, message: "Server error during signup", error: error.message });
   }
 };
+
+
 
 exports.fixAllPasswords = async (req, res) => {
   try {

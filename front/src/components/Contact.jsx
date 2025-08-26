@@ -5,7 +5,8 @@ import { styles } from "../styles";
 import { EarthCanvas } from "./canvas";
 import { SectionWrapper } from "../hoc";
 import { slideIn } from "../utils/motion";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
+
 const Contact = () => {
   const [formData, setFormData] = useState({
     firstName: "",
@@ -16,20 +17,14 @@ const Contact = () => {
     phoneNumber: "",
     photo: "",
     role: "passenger", // default role
-    boatInfo: {
-      name:"",
-      boatLicense: "",
-      boatType: "",
-      boatCapacity: ""
-    },
     adminInfo: {
       adminId: "",
-      department: ""
-    }
+      department: "",
+    },
   });
 
-const API_URL = "/api";
-    const navigate = useNavigate();
+  const API_URL = "/api";
+  const navigate = useNavigate();
   const [profileImage, setProfileImage] = useState(null);
   const [profileImagePreview, setProfileImagePreview] = useState(null);
 
@@ -46,31 +41,27 @@ const API_URL = "/api";
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const handleNestedChange = (parent, field, value) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [parent]: {
         ...prev[parent],
-        [field]: value
-      }
+        [field]: value,
+      },
     }));
   };
-
- 
 
   const handleProfileImageChange = (e) => {
     const file = e.target.files[0];
     setProfileImage(file);
     setProfileImagePreview(URL.createObjectURL(file));
   };
-
- 
 
   const handleProfileImageUpload = async () => {
     if (!profileImage) {
@@ -81,16 +72,19 @@ const API_URL = "/api";
     const formDataImage = new FormData();
     formDataImage.append("image", profileImage);
 
-  
-      try {
-    const response = await axios.post(`${API_URL}/auth/upload-profile-image`, formDataImage, {
-      headers: { "Content-Type": "multipart/form-data" },
-      });
+    try {
+      const response = await axios.post(
+        `${API_URL}/auth/upload-profile-image`,
+        formDataImage,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
 
       if (response.data.success) {
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
-          photo: response.data.image
+          photo: response.data.image,
         }));
       } else {
         alert("Failed to upload profile image.");
@@ -101,124 +95,100 @@ const API_URL = "/api";
     }
   };
 
-//signup is here 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  
-  const submitData = {
-    ...formData,
-    ...(formData.role === 'boat_owner' && { boatInfo: formData.boatInfo }),
-    ...(formData.role === 'admin' && { adminInfo: formData.adminInfo })
+    const submitData = {
+      ...formData,
+      ...(formData.role === "admin" && { adminInfo: formData.adminInfo }),
+    };
+
+    try {
+      const response = await axios.post("/api/auth/signup", submitData);
+
+      // Store token and user data
+      localStorage.setItem("token", response.data.token);
+      if (response.data.user) {
+        localStorage.setItem("user", JSON.stringify(response.data.user));
+      }
+
+      // Redirect based on role
+      if (response.data.requiresBoatInfo) {
+        navigate("/complete-boat-info");
+      } else {
+        navigate("/profile"); // Redirect to profile page
+      }
+    } catch (error) {
+      console.error("Error during sign-up:", error);
+      alert(error.response?.data?.message || "Signup failed");
+    }
   };
 
-  try {
-    const response = await axios.post("/api/auth/signup", submitData);
-
-
-    
-    // Store token and user data
-    localStorage.setItem('token', response.data.token);
-    if (response.data.user) {
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-    }
-  
-    // Redirect based on role
-    if (response.data.requiresBoatInfo) {
-      navigate('/complete-boat-info');
-    } else {
-      navigate('/profile'); // Redirect to profile page
-    }
-    
-  } catch (error) {
-    console.error("Error during sign-up:", error);
-    alert(error.response?.data?.message || "Signup failed");
-  }
-};
-
   const handleRoleChange = (role) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      role
+      role,
     }));
   };
 
   const renderRoleSpecificFields = () => {
-    switch(formData.role) {
-      case 'boat_owner':
+    switch (formData.role) {
+      case "admin":
         return (
           <>
-            <h3 style={{ fontSize: "24px", margin: "20px 0 10px" }}>Boat Information</h3>
-            <label style={{ display: "flex", flexDirection: "column", fontSize: "20px" }}>
-              <span style={{ color: "black", marginBottom: "8px", fontSize: "20px" }}>Boat License</span>
-              <input
-                type="text"
-                name="boatLicense"
-                value={formData.boatInfo.boatLicense}
-                onChange={(e) => handleNestedChange('boatInfo', 'boatLicense', e.target.value)}
-                required
-                style={inputStyle}
-              />
-            </label>
-
-      <label style={{ display: "flex", flexDirection: "column", fontSize: "20px" }}>
-        <span style={{ color: "black", marginBottom: "8px", fontSize: "20px" }}>Boat Name</span>
-        <input
-          type="text"
-          name="name"
-          value={formData.boatInfo.name}
-          onChange={(e) => handleNestedChange('boatInfo', 'name', e.target.value)}
-          required
-          style={inputStyle}
-        />
-      </label>
-
-            <label style={{ display: "flex", flexDirection: "column", fontSize: "20px" }}>
-              <span style={{ color: "black", marginBottom: "8px", fontSize: "20px" }}>Boat Type</span>
-              <input
-                type="text"
-                name="boatType"
-                value={formData.boatInfo.boatType}
-                onChange={(e) => handleNestedChange('boatInfo', 'boatType', e.target.value)}
-                required
-                style={inputStyle}
-              />
-            </label>
-            <label style={{ display: "flex", flexDirection: "column", fontSize: "20px" }}>
-              <span style={{ color: "black", marginBottom: "8px", fontSize: "20px" }}>Boat Capacity</span>
-              <input
-                type="number"
-                name="boatCapacity"
-                value={formData.boatInfo.boatCapacity}
-                onChange={(e) => handleNestedChange('boatInfo', 'boatCapacity', e.target.value)}
-                required
-                style={inputStyle}
-              />
-            </label>
-          </>
-        );
-      case 'admin':
-        return (
-          <>
-            <h3 style={{ fontSize: "24px", margin: "20px 0 10px" }}>Admin Information</h3>
-            <label style={{ display: "flex", flexDirection: "column", fontSize: "20px" }}>
-              <span style={{ color: "black", marginBottom: "8px", fontSize: "20px" }}>Admin ID</span>
+            <h3 style={{ fontSize: "24px", margin: "20px 0 10px" }}>
+              Admin Information
+            </h3>
+            <label
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                fontSize: "20px",
+              }}
+            >
+              <span
+                style={{
+                  color: "black",
+                  marginBottom: "8px",
+                  fontSize: "20px",
+                }}
+              >
+                Admin ID
+              </span>
               <input
                 type="text"
                 name="adminId"
                 value={formData.adminInfo.adminId}
-                onChange={(e) => handleNestedChange('adminInfo', 'adminId', e.target.value)}
+                onChange={(e) =>
+                  handleNestedChange("adminInfo", "adminId", e.target.value)
+                }
                 required
                 style={inputStyle}
               />
             </label>
-            <label style={{ display: "flex", flexDirection: "column", fontSize: "20px" }}>
-              <span style={{ color: "black", marginBottom: "8px", fontSize: "20px" }}>Department</span>
+            <label
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                fontSize: "20px",
+              }}
+            >
+              <span
+                style={{
+                  color: "black",
+                  marginBottom: "8px",
+                  fontSize: "20px",
+                }}
+              >
+                Department
+              </span>
               <input
                 type="text"
                 name="department"
                 value={formData.adminInfo.department}
-                onChange={(e) => handleNestedChange('adminInfo', 'department', e.target.value)}
+                onChange={(e) =>
+                  handleNestedChange("adminInfo", "department", e.target.value)
+                }
                 required
                 style={inputStyle}
               />
@@ -231,16 +201,18 @@ const handleSubmit = async (e) => {
   };
 
   return (
-    <div style={{
-      backgroundColor: "#f0f0f0",
-      display: "flex",
-      flexDirection: "row",
-      alignItems: "flex-start",
-      justifyContent: "space-between",
-      width: "100%",
-      gap: "10px",
-      padding: "100px",
-    }}>
+    <div
+      style={{
+        backgroundColor: "#f0f0f0",
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "flex-start",
+        justifyContent: "space-between",
+        width: "100%",
+        gap: "10px",
+        padding: "100px",
+      }}
+    >
       {/* Form Section */}
       <motion.div
         variants={slideIn("left", "tween", 0.7, 1)}
@@ -253,16 +225,32 @@ const handleSubmit = async (e) => {
           boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
         }}
       >
-        <h3 className={styles.sectionSubText} style={{ fontSize: "90px" }}>Welcome!</h3>
-        <h1 className={styles.sectionHeadText} style={{ fontSize: "30px" }}>Your Information</h1>
+        <h3 className={styles.sectionSubText} style={{ fontSize: "90px" }}>
+          Welcome!
+        </h3>
+        <h1 className={styles.sectionHeadText} style={{ fontSize: "30px" }}>
+          Your Information
+        </h1>
 
-      
-
-       
-
-        <label style={{ display: "block", marginBottom: "16px", fontSize: "20px", marginTop: "20px" }}>
-          <span style={{ color: "black", marginBottom: "8px", fontSize: "20px" }}>Upload Profile Image</span>
-          <input type="file" onChange={handleProfileImageChange} accept="image/*" style={inputStyle} />
+        <label
+          style={{
+            display: "block",
+            marginBottom: "16px",
+            fontSize: "20px",
+            marginTop: "20px",
+          }}
+        >
+          <span
+            style={{ color: "black", marginBottom: "8px", fontSize: "20px" }}
+          >
+            Upload Profile Image
+          </span>
+          <input
+            type="file"
+            onChange={handleProfileImageChange}
+            accept="image/*"
+            style={inputStyle}
+          />
         </label>
         <button
           onClick={handleProfileImageUpload}
@@ -275,7 +263,7 @@ const handleSubmit = async (e) => {
             cursor: "pointer",
             fontSize: "18px",
             transition: "background-color 0.3s ease",
-            marginBottom: "20px"
+            marginBottom: "20px",
           }}
         >
           Upload Profile Image
@@ -289,22 +277,30 @@ const handleSubmit = async (e) => {
         )}
 
         {/* Main Form */}
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          {/* Improved Role Selection */}
+        <form
+          onSubmit={handleSubmit}
+          style={{ display: "flex", flexDirection: "column", gap: "16px" }}
+        >
+          {/* Role Selection */}
           <div style={{ marginBottom: "20px" }}>
-            <h3 style={{ fontSize: "20px", marginBottom: "15px", color: "black" }}>Select Your Role</h3>
+            <h3 style={{ fontSize: "20px", marginBottom: "15px", color: "black" }}>
+              Select Your Role
+            </h3>
             <div style={{ display: "flex", gap: "15px", flexWrap: "wrap" }}>
-              <div 
+              <div
                 onClick={() => handleRoleChange("passenger")}
                 style={{
                   flex: "1",
                   minWidth: "200px",
                   padding: "20px",
                   borderRadius: "10px",
-                  border: `2px solid ${formData.role === "passenger" ? "#4CAF50" : "#ddd"}`,
-                  backgroundColor: formData.role === "passenger" ? "#f0fff0" : "#fff",
+                  border: `2px solid ${
+                    formData.role === "passenger" ? "#4CAF50" : "#ddd"
+                  }`,
+                  backgroundColor:
+                    formData.role === "passenger" ? "#f0fff0" : "#fff",
                   cursor: "pointer",
-                  transition: "all 0.3s ease"
+                  transition: "all 0.3s ease",
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -318,20 +314,25 @@ const handleSubmit = async (e) => {
                   />
                   <h4 style={{ margin: "0", fontSize: "18px" }}>Passenger</h4>
                 </div>
-                <p style={{ margin: "10px 0 0", color: "#666" }}>Book and manage boat trips</p>
+                <p style={{ margin: "10px 0 0", color: "#666" }}>
+                  Book and manage boat trips
+                </p>
               </div>
 
-              <div 
+              <div
                 onClick={() => handleRoleChange("boat_owner")}
                 style={{
                   flex: "1",
                   minWidth: "200px",
                   padding: "20px",
                   borderRadius: "10px",
-                  border: `2px solid ${formData.role === "boat_owner" ? "#4CAF50" : "#ddd"}`,
-                  backgroundColor: formData.role === "boat_owner" ? "#f0fff0" : "#fff",
+                  border: `2px solid ${
+                    formData.role === "boat_owner" ? "#4CAF50" : "#ddd"
+                  }`,
+                  backgroundColor:
+                    formData.role === "boat_owner" ? "#f0fff0" : "#fff",
                   cursor: "pointer",
-                  transition: "all 0.3s ease"
+                  transition: "all 0.3s ease",
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -345,20 +346,24 @@ const handleSubmit = async (e) => {
                   />
                   <h4 style={{ margin: "0", fontSize: "18px" }}>Boat Owner</h4>
                 </div>
-                <p style={{ margin: "10px 0 0", color: "#666" }}>List and manage your boats</p>
+                <p style={{ margin: "10px 0 0", color: "#666" }}>
+                  List and manage your boats
+                </p>
               </div>
 
-              <div 
+              <div
                 onClick={() => handleRoleChange("admin")}
                 style={{
                   flex: "1",
                   minWidth: "200px",
                   padding: "20px",
                   borderRadius: "10px",
-                  border: `2px solid ${formData.role === "admin" ? "#4CAF50" : "#ddd"}`,
+                  border: `2px solid ${
+                    formData.role === "admin" ? "#4CAF50" : "#ddd"
+                  }`,
                   backgroundColor: formData.role === "admin" ? "#f0fff0" : "#fff",
                   cursor: "pointer",
-                  transition: "all 0.3s ease"
+                  transition: "all 0.3s ease",
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -372,14 +377,26 @@ const handleSubmit = async (e) => {
                   />
                   <h4 style={{ margin: "0", fontSize: "18px" }}>Admin</h4>
                 </div>
-                <p style={{ margin: "10px 0 0", color: "#666" }}>Manage system and users</p>
+                <p style={{ margin: "10px 0 0", color: "#666" }}>
+                  Manage system and users
+                </p>
               </div>
             </div>
           </div>
 
           {/* Common Fields */}
-          <label style={{ display: "flex", flexDirection: "column", fontSize: "20px" }}>
-            <span style={{ color: "black", marginBottom: "8px", fontSize: "20px" }}>First Name</span>
+          <label
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              fontSize: "20px",
+            }}
+          >
+            <span
+              style={{ color: "black", marginBottom: "8px", fontSize: "20px" }}
+            >
+              First Name
+            </span>
             <input
               type="text"
               name="firstName"
@@ -390,8 +407,18 @@ const handleSubmit = async (e) => {
             />
           </label>
 
-          <label style={{ display: "flex", flexDirection: "column", fontSize: "20px" }}>
-            <span style={{ color: "black", marginBottom: "8px", fontSize: "20px" }}>Last Name</span>
+          <label
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              fontSize: "20px",
+            }}
+          >
+            <span
+              style={{ color: "black", marginBottom: "8px", fontSize: "20px" }}
+            >
+              Last Name
+            </span>
             <input
               type="text"
               name="lastName"
@@ -402,8 +429,18 @@ const handleSubmit = async (e) => {
             />
           </label>
 
-          <label style={{ display: "flex", flexDirection: "column", fontSize: "20px" }}>
-            <span style={{ color: "black", marginBottom: "8px", fontSize: "20px" }}>Age</span>
+          <label
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              fontSize: "20px",
+            }}
+          >
+            <span
+              style={{ color: "black", marginBottom: "8px", fontSize: "20px" }}
+            >
+              Age
+            </span>
             <input
               type="number"
               name="age"
@@ -414,8 +451,18 @@ const handleSubmit = async (e) => {
             />
           </label>
 
-          <label style={{ display: "flex", flexDirection: "column", fontSize: "20px" }}>
-            <span style={{ color: "black", marginBottom: "8px", fontSize: "20px" }}>Email</span>
+          <label
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              fontSize: "20px",
+            }}
+          >
+            <span
+              style={{ color: "black", marginBottom: "8px", fontSize: "20px" }}
+            >
+              Email
+            </span>
             <input
               type="email"
               name="email"
@@ -426,8 +473,18 @@ const handleSubmit = async (e) => {
             />
           </label>
 
-          <label style={{ display: "flex", flexDirection: "column", fontSize: "20px" }}>
-            <span style={{ color: "black", marginBottom: "8px", fontSize: "20px" }}>Password</span>
+          <label
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              fontSize: "20px",
+            }}
+          >
+            <span
+              style={{ color: "black", marginBottom: "8px", fontSize: "20px" }}
+            >
+              Password
+            </span>
             <input
               type="password"
               name="password"
@@ -438,8 +495,18 @@ const handleSubmit = async (e) => {
             />
           </label>
 
-          <label style={{ display: "flex", flexDirection: "column", fontSize: "20px" }}>
-            <span style={{ color: "black", marginBottom: "8px", fontSize: "20px" }}>Phone Number</span>
+          <label
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              fontSize: "20px",
+            }}
+          >
+            <span
+              style={{ color: "black", marginBottom: "8px", fontSize: "20px" }}
+            >
+              Phone Number
+            </span>
             <input
               type="tel"
               name="phoneNumber"
@@ -450,15 +517,10 @@ const handleSubmit = async (e) => {
             />
           </label>
 
-         
-
-          {/* Hidden field for photo URL */}
           <input type="hidden" name="photo" value={formData.photo} />
 
-          {/* Role-specific fields */}
           {renderRoleSpecificFields()}
 
-          {/* Submit Button */}
           <button
             type="submit"
             style={{
@@ -470,7 +532,7 @@ const handleSubmit = async (e) => {
               cursor: "pointer",
               fontSize: "18px",
               transition: "background-color 0.3s ease",
-              marginTop: "20px"
+              marginTop: "20px",
             }}
           >
             Sign Up
@@ -478,7 +540,6 @@ const handleSubmit = async (e) => {
         </form>
       </motion.div>
 
-      {/* Earth Canvas Section */}
       <motion.div
         variants={slideIn("right", "tween", 0.6, 1)}
         style={{

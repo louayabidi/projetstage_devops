@@ -10,9 +10,12 @@ const bookingSchema = new mongoose.Schema({
   paymentMethod: { type: String, required: true },
   departureLocation: {
     type: { type: String, default: 'Point' },
-    coordinates: [Number],
+    coordinates: [Number], // [longitude, latitude]
   },
-  destination: { type: String, required: true },
+  destination: {
+    type: { type: String, default: 'Point' },
+    coordinates: [Number], // [longitude, latitude]
+  },
   numberOfCabins: { type: Number, required: true },
   startDate: { type: Date, required: true },
   endDate: { type: Date, required: true },
@@ -25,6 +28,7 @@ const bookingSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 bookingSchema.index({ 'departureLocation.coordinates': '2dsphere' });
+bookingSchema.index({ 'destination.coordinates': '2dsphere' });
 bookingSchema.index({ 'currentLocation.coordinates': '2dsphere' });
 
 module.exports = mongoose.model('Booking', bookingSchema);

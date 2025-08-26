@@ -54,13 +54,9 @@ function SidenavCard({ color, ...rest }) {
           </Icon>
         </VuiBox>
         <VuiBox lineHeight={1}>
-          <VuiTypography variant="h6" color="white">
-            Need help?
-          </VuiTypography>
+         
           <VuiBox mb={1.825} mt={-1}>
-            <VuiTypography variant="caption" color="white" fontWeight="regular">
-              Please check our docs
-            </VuiTypography>
+           
           </VuiBox>
           <VuiButton
             component={Link}
@@ -86,7 +82,7 @@ function SidenavCard({ color, ...rest }) {
             })}
             fullWidth
           >
-            DOCUMENTATION
+          
           </VuiButton>
         </VuiBox>
       </CardContent>

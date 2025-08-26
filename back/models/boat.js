@@ -1,30 +1,33 @@
-// backend/models/Boat.js
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
-const boatSchema = new mongoose.Schema({
-  owner: { type: String, ref: 'User' }, // Keep as String
-  name: { type: String },
-  boatType: { type: String },
-  boatCapacity: { type: Number, min: 1 },
-  boatLicense: { type: String, unique: true },
-  amenities: [{ type: String }],
-  photos: [{ type: String }],
-  isVerified: { type: Boolean, default: false },
-  createdAt: { type: Date, default: Date.now },
-  location: {
-    type: {
-      type: String,
-      enum: ['Point'],
-      default: 'Point'
+const boatSchema = new mongoose.Schema(
+  {
+    owner: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    name: { type: String, required: true },
+    boatType: { type: String, required: true },
+    boatCapacity: { type: Number, min: 1, required: true },
+    boatLicense: { type: String, unique: true, required: true },
+    amenities: [{ type: String }],
+    photos: [{ type: String }],
+    description: { type: String, required: true },
+    isVerified: { type: Boolean, default: false },
+    createdAt: { type: Date, default: Date.now },
+    location: {
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: "Point",
+      },
+      coordinates: {
+        type: [Number],
+        default: [0, 0],
+      },
     },
-    coordinates: {
-      type: [Number],
-      default: [0, 0]
-    }
+    lastLocationUpdate: { type: Date },
   },
-  lastLocationUpdate: { type: Date }
-}, { versionKey: false });
+  { versionKey: false }
+);
 
-boatSchema.index({ location: '2dsphere' });
+boatSchema.index({ location: "2dsphere" });
 
-module.exports = mongoose.model('Boat', boatSchema);
+module.exports = mongoose.model("Boat", boatSchema);

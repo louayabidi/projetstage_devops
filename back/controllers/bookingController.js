@@ -1,3 +1,5 @@
+const express = require('express');
+const axios = require('axios');
 const Booking = require('../models/bookingModel');
 const Boat = require('../models/boat');
 const User = require('../models/usersModel');
@@ -65,7 +67,10 @@ exports.createBooking = async (req, res) => {
         type: 'Point',
         coordinates: departureLocation.coordinates
       },
-      destination,
+      destination: {
+        type: 'Point',
+        coordinates: destination.coordinates
+      },
       numberOfCabins,
       startDate,
       endDate
@@ -260,6 +265,7 @@ exports.acceptOffer = async (req, res) => {
     });
   }
 };
+
 // Passenger rejects offer
 exports.rejectOffer = async (req, res) => {
   try {
@@ -492,6 +498,78 @@ exports.getBookingById = async (req, res) => {
       success: false,
       message: 'Server error',
       error: error.message
+    });
+  }
+};
+
+// Fetch weather data for a location
+exports.getWeather = async (req, res) => {
+  try {
+    const { lat, lng } = req.query;
+    if (!lat || !lng) {
+      return res.status(400).json({ success: false, message: 'Latitude and longitude are required' });
+    }
+
+    const apiKey = process.env.OPENWEATHER_API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({ success: false, message: 'Weather API key not configured' });
+    }
+
+    console.log('Fetching weather for:', { lat, lng }); // Debug log
+
+    // Fetch current weather
+    const currentWeatherResponse = await axios.get(
+      `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${apiKey}&units=metric`
+    ).catch(error => {
+      console.error('Current weather API error:', error.response?.data || error.message);
+      throw error;
+    });
+
+    // Fetch 5-day forecast
+    const forecastResponse = await axios.get(
+      `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lng}&appid=${apiKey}&units=metric`
+    ).catch(error => {
+      console.error('Forecast API error:', error.response?.data || error.message);
+      throw error;
+    });
+
+    // Process current weather
+    const current = {
+      temp: currentWeatherResponse.data.main.temp,
+      description: currentWeatherResponse.data.weather[0].description,
+      icon: currentWeatherResponse.data.weather[0].icon,
+      wind_speed: currentWeatherResponse.data.wind.speed,
+      humidity: currentWeatherResponse.data.main.humidity,
+    };
+
+    // Process forecast
+    const forecast = [];
+    const dailyData = forecastResponse.data.list.filter(item => item.dt_txt.includes('12:00:00'));
+    console.log('Filtered forecast data:', dailyData); // Debug log
+    dailyData.forEach(item => {
+      forecast.push({
+        dt: item.dt,
+        temp: item.main.temp,
+        description: item.weather[0].description,
+        icon: item.weather[0].icon,
+      });
+    });
+
+    res.status(200).json({
+      success: true,
+      current,
+      forecast,
+    });
+  } catch (error) {
+    console.error('Fetch weather error:', {
+      message: error.message,
+      response: error.response?.data,
+      stack: error.stack,
+    });
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch weather data',
+      error: error.message,
     });
   }
 };

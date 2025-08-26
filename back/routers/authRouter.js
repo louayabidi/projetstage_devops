@@ -111,7 +111,10 @@ router.get("/test-password-hash", authController.testPasswordHash);
 
 router.post("/signin", authController.signin);
 
-
+router.put('/:id/reject', 
+  passport.authenticate('jwt', { session: false }), 
+  authController.rejectBoatOwner
+);
 
 
 

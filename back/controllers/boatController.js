@@ -35,19 +35,20 @@ const upload = multer({
 
 exports.createBoat = async (req, res) => {
   try {
-    const userId = req.user._id; // Use _id
-    const { name, amenities, photos, boatType, boatCapacity, boatLicense } = req.body;
+    const userId = req.user._id;
+    const { name, amenities, photos, boatType, boatCapacity, boatLicense, description } = req.body;
 
-    if (!name || !boatType || !boatCapacity || !boatLicense) {
+    if (!name || !boatType || !boatCapacity || !boatLicense || !description) {
       return res.status(400).json({
         success: false,
-        message: 'All boat fields are required'
+        message: 'All boat fields are required',
       });
     }
 
     let boat = await Boat.findOne({ owner: userId });
 
     if (boat) {
+      // Update existing boat and reset verification/rejection
       boat = await Boat.findOneAndUpdate(
         { owner: userId },
         {
@@ -55,9 +56,12 @@ exports.createBoat = async (req, res) => {
           boatType,
           boatCapacity,
           boatLicense,
+          description,
           amenities: Array.isArray(amenities) ? amenities : [],
           photos: Array.isArray(photos) ? photos : [],
-          isVerified: true
+          isVerified: false, // Reset to unverified
+          isRejected: false, // Clear rejection
+          rejectionReason: null, // Clear reason
         },
         { new: true }
       );
@@ -68,30 +72,39 @@ exports.createBoat = async (req, res) => {
         boatType,
         boatCapacity,
         boatLicense,
+        description,
         amenities: Array.isArray(amenities) ? amenities : [],
         photos: Array.isArray(photos) ? photos : [],
-        isVerified: true
+        isVerified: false,
+        isRejected: false,
+        rejectionReason: null,
       });
       await boat.save();
     }
 
+    // Update user to reflect boat info completion and reset status
     await User.findByIdAndUpdate(
       userId,
-      { boatInfoComplete: true },
+      {
+        boatInfoComplete: true,
+        verified: false,
+        rejected: false,
+        rejectionReason: null,
+      },
       { new: true }
     );
 
     return res.status(200).json({
       success: true,
       message: 'Boat information saved successfully',
-      boat
+      boat,
     });
   } catch (error) {
     console.error('Error:', error);
     return res.status(500).json({
       success: false,
       message: 'Internal server error',
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -134,10 +147,10 @@ exports.getBoatLocations = async (req, res) => {
 
 exports.getBoats = async (req, res) => {
   try {
-    const boats = await Boat.find({ isVerified: true }).populate('owner', 'firstName lastName');
-    res.json(boats);
+    const boats = await Boat.find({ isVerified: true, isRejected: false });
+    res.status(200).json(boats);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 };
 

@@ -40,6 +40,14 @@ const userSchema = new mongoose.Schema({
     type: Boolean, 
     default: false 
   },
+rejected: { 
+  type: Boolean, 
+  default: false },  
+
+  rejectionReason: { 
+    type: String,
+     default: null },
+
   boat: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'Boat' 

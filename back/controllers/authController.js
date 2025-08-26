@@ -5,6 +5,7 @@ const User = require('../models/usersModel');
 const mongoose = require('mongoose');
 const Boat = require('../models/boat');
 const transport = require("../middlewares/sendMail");
+const { sendVerificationEmail } = require('../utils/email');
 const {
   signupSchema,
   signinSchema,
@@ -13,6 +14,8 @@ const {
   acceptFPCodeSchema,
 } = require("../middlewares/validator");
 const { doHash, doHashValidation, hmacProcess } = require("../utils/hashing");
+
+
 
 exports.verifyBoatOwner = async (req, res) => {
   try {
@@ -26,16 +29,80 @@ exports.verifyBoatOwner = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Boat owner not found' });
     }
     user.verified = true;
+    user.rejected = false;
+    user.rejectionReason = null;
     if (user.boat) {
       user.boat.isVerified = true;
+      user.boat.isRejected = false;
+      user.boat.rejectionReason = null;
       await user.boat.save();
     }
     await user.save();
+
+    try {
+      await sendVerificationEmail(user.email, true);
+    } catch (emailError) {
+      console.error('Failed to send verification email:', emailError);
+      return res.status(500).json({
+        success: false,
+        message: 'Boat owner verified, but failed to send email',
+        error: emailError.message,
+      });
+    }
+
     res.status(200).json({ success: true, message: 'Boat owner verified successfully', user });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 };
+
+exports.rejectBoatOwner = async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Access denied: Admins only' });
+    }
+    const { id } = req.params;
+    const { rejectionReason } = req.body;
+
+    if (!rejectionReason) {
+      return res.status(400).json({ success: false, message: 'Rejection reason is required' });
+    }
+
+    const user = await User.findById(id).populate('boat');
+    if (!user || user.role !== 'boat_owner') {
+      return res.status(404).json({ success: false, message: 'Boat owner not found' });
+    }
+
+    user.verified = false;
+    user.rejected = true;
+    user.rejectionReason = rejectionReason;
+
+    if (user.boat) {
+      user.boat.isVerified = false;
+      user.boat.isRejected = true;
+      user.boat.rejectionReason = rejectionReason;
+      await user.boat.save();
+    }
+
+    await user.save();
+
+    try {
+      await sendVerificationEmail(user.email, false, rejectionReason);
+    } catch (emailError) {
+      console.error('Failed to send rejection email:', emailError);
+      return res.status(500).json({
+        success: false,
+        message: 'Boat owner rejected, but failed to send email',
+        error: emailError.message,
+      });
+    }
+
+    res.status(200).json({ success: true, message: 'Boat owner rejected successfully', user });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+};
+
 
 exports.signup = async (req, res) => {
   try {

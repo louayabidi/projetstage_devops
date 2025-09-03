@@ -24,7 +24,7 @@ import SignUp from "./dashboard/layouts/authentication/sign-up";
 import BoatOwnerDetail from "./dashboard/layouts/tables/data/BoatOwnerDetail";
 import Layout from "./components/Layout"; 
 import OwnerCalendar from './components/booking/OwnerCalendar';
-
+import ChangePassword from "./components/User/ChangePassword";
 
 
 
@@ -39,6 +39,7 @@ function App() {
       <Route path="/registration" element={<Layout><Registration /></Layout>} />
       <Route path="/boats" element={<Layout><Boats /></Layout>} />
       <Route path="/boats/:id" element={<Layout><BoatDetails /></Layout>} />
+      <Route path="/change-password" element={<ChangePassword />} />
 
       {/* Protected Routes */}
       <Route
@@ -57,6 +58,7 @@ function App() {
           </ProtectedRoute>
         }
       />
+
 
 
 

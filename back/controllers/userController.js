@@ -133,7 +133,7 @@ exports.getUserDetails = async (req, res) => {
   }
 };
 
-
+/*
 exports.verifyBoatOwner = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -196,6 +196,8 @@ exports.verifyBoatOwner = async (req, res) => {
     });
   }
 };
+*/
+
 
 exports.getCurrentUser = async (req, res) => {
   try {

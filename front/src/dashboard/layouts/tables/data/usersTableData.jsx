@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import VuiBox from "components/VuiBox";
 import VuiTypography from "components/VuiTypography";
 import VuiBadge from "components/VuiBadge";
 import VuiButton from "components/VuiButton";
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button } from "@mui/material";
 import { toast } from "react-toastify";
 
 const useUsersTableData = () => {
@@ -21,21 +20,24 @@ const useUsersTableData = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState({});
-  const [showRejectModal, setShowRejectModal] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState(null);
-  const [rejectionReason, setRejectionReason] = useState("");
+  const [rejectionReasons, setRejectionReasons] = useState({});
 
+  const navigate = useNavigate();
   const API_BASE_URL = "http://localhost:3000";
 
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
+        console.error("No token found in localStorage");
         setError("Authentication token not found");
         setLoading(false);
+        toast.error("Please log in again");
+        navigate("/login");
         return;
       }
 
+      console.log("Fetching users with token:", token.slice(0, 20) + "...");
       const response = await axios.get(`${API_BASE_URL}/api/users`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -47,85 +49,135 @@ const useUsersTableData = () => {
         throw new Error("Expected an array of users");
       }
 
-      const formattedRows = users.map((user) => ({
-        name: (
-          <VuiBox>
-            <Link to={`/dashboard/admin/users/${user._id}`}>
-              <VuiTypography
-                variant="button"
-                color="white"
-                fontWeight="medium"
-                sx={{ textDecoration: "underline" }}
-              >
-                {`${user.firstName} ${user.lastName}`}
-              </VuiTypography>
-            </Link>
-          </VuiBox>
-        ),
-        email: (
-          <VuiTypography variant="button" color="white" fontWeight="medium">
-            {user.email}
-          </VuiTypography>
-        ),
-        role: (
-          <VuiTypography variant="button" color="white" fontWeight="medium">
-            {user.role}
-          </VuiTypography>
-        ),
-        boatInfo: (
-          <VuiTypography variant="button" color="white" fontWeight="medium">
-            {user.role === "boat_owner" && user.boatInfoComplete
-              ? user.boat?.name || "Boat Info Available"
-              : "N/A"}
-          </VuiTypography>
-        ),
-        status: (
-          <VuiBadge
-            variant="gradient"
-            badgeContent={
-              user.verified ? "Verified" : user.rejected ? "Rejected" : "Unverified"
-            }
-            color={user.verified ? "success" : user.rejected ? "error" : "warning"}
-            size="xs"
-            container
-          />
-        ),
-        action: (
-          <VuiBox display="flex" gap={2}>
-            {user.role === "boat_owner" && !user.verified && !user.rejected && (
-              <>
-                <VuiButton
-                  variant="gradient"
-                  color="primary"
-                  size="small"
-                  onClick={() => verifyBoatOwner(user._id)}
-                  disabled={actionLoading[user._id]}
+      const formattedRows = users.map((user) => {
+        const userId = String(user._id);
+
+        return {
+          name: (
+            <VuiBox>
+              <Link to={`/dashboard/admin/users/${userId}`}>
+                <VuiTypography
+                  variant="button"
+                  color="white"
+                  fontWeight="medium"
+                  sx={{ textDecoration: "underline" }}
                 >
-                  {actionLoading[user._id] ? "Verifying..." : "Verify"}
-                </VuiButton>
-                <VuiButton
-                  variant="gradient"
-                  color="error"
-                  size="small"
-                  onClick={() => {
-                    setSelectedUserId(user._id);
-                    setShowRejectModal(true);
-                  }}
-                >
-                  Reject
-                </VuiButton>
-              </>
-            )}
-          </VuiBox>
-        ),
-      }));
+                  {`${user.firstName} ${user.lastName}`}
+                </VuiTypography>
+              </Link>
+            </VuiBox>
+          ),
+          email: (
+            <VuiTypography variant="button" color="white" fontWeight="medium">
+              {user.email}
+            </VuiTypography>
+          ),
+          role: (
+            <VuiTypography variant="button" color="white" fontWeight="medium">
+              {user.role}
+            </VuiTypography>
+          ),
+          boatInfo: (
+            <VuiTypography variant="button" color="white" fontWeight="medium">
+              {user.role === "boat_owner" && user.boatInfoComplete
+                ? user.boat?.name || "Boat Info Available"
+                : "N/A"}
+            </VuiTypography>
+          ),
+          status: (
+            <VuiBadge
+              variant="gradient"
+              badgeContent={
+                user.verified ? "Verified" : user.rejected ? "Rejected" : "Unverified"
+              }
+              color={user.verified ? "success" : user.rejected ? "error" : "warning"}
+              size="xs"
+              container
+            />
+          ),
+          action: (
+            <VuiBox
+              display="flex"
+              gap={1}
+              alignItems="center"
+              key={`action-${userId}`} // ✅ fixed key
+            >
+              {user.role === "boat_owner" && !user.verified && !user.rejected && (
+                <>
+                  <VuiButton
+                    variant="gradient"
+                    color="primary"
+                    size="small"
+                    onClick={() => verifyBoatOwner(userId)}
+                    disabled={actionLoading[userId]}
+                  >
+                    {actionLoading[userId] ? "Verifying..." : "Verify"}
+                  </VuiButton>
+
+                  <select
+                    value={rejectionReasons[userId] || ""}
+                    onChange={(e) => {
+                      const newReason = e.target.value;
+                      setRejectionReasons((prev) => ({
+                        ...prev,
+                        [userId]: newReason,
+                      }));
+                    }}
+                    style={{
+                      padding: "8px",
+                      backgroundColor: "#444",
+                      color: "#fff",
+                      border: "1px solid #aaa",
+                      borderRadius: "4px",
+                      marginRight: "8px",
+                    }}
+                  >
+                    <option value="">Select Rejection Reason</option>
+                    <option value="Missing license details">
+                      Missing license details
+                    </option>
+                    <option value="Incomplete boat info">
+                      Incomplete boat info
+                    </option>
+                    <option value="Invalid documentation">
+                      Invalid documentation
+                    </option>
+                    <option value="Other">Other</option>
+                  </select>
+
+                  <button
+                    key={`reject-${userId}`} // stable key
+                    onClick={() => handleReject(userId)}
+                    disabled={!rejectionReasons[userId]?.trim()}
+                    style={{
+                      padding: "8px 16px",
+                      backgroundColor: "#d32f2f",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: "4px",
+                      cursor: rejectionReasons[userId]?.trim()
+                        ? "pointer"
+                        : "not-allowed",
+                      opacity: rejectionReasons[userId]?.trim() ? 1 : 0.5,
+                    }}
+                  >
+                    {actionLoading[userId] ? "Rejecting..." : "Reject"}
+                  </button>
+                </>
+              )}
+            </VuiBox>
+          ),
+        };
+      });
 
       setRows(formattedRows);
       setLoading(false);
+      console.log("Users table updated, rows:", formattedRows.length);
     } catch (err) {
       console.error("Fetch users error:", err);
       setError(err.response?.data?.message || `Failed to fetch users: ${err.message}`);
       setLoading(false);
+      toast.error(err.response?.data?.message || "Failed to fetch users");
     }
   };
 
@@ -135,12 +187,13 @@ const useUsersTableData = () => {
       const token = localStorage.getItem("token");
       if (!token) {
         setError("Authentication token not found");
-        toast.error("Authentication token not found");
+        toast.error("Authentication token not found. Please log in again.");
+        navigate("/login");
         return;
       }
 
       const response = await axios.put(
-        `${API_BASE_URL}/api/users/${userId}/verify`,
+        `${API_BASE_URL}/api/auth/${userId}/verify`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -153,6 +206,7 @@ const useUsersTableData = () => {
         toast.error(response.data.message || "Failed to verify boat owner");
       }
     } catch (err) {
+      console.error("Verify error:", err);
       setError(err.response?.data?.message || "Failed to verify boat owner");
       toast.error(err.response?.data?.message || "Failed to verify boat owner");
     } finally {
@@ -166,24 +220,26 @@ const useUsersTableData = () => {
       const token = localStorage.getItem("token");
       if (!token) {
         setError("Authentication token not found");
-        toast.error("Authentication token not found");
+        toast.error("Authentication token not found. Please log in again.");
+        navigate("/login");
         return;
       }
 
       const response = await axios.put(
-        `${API_BASE_URL}/api/users/${userId}/reject`,
+        `${API_BASE_URL}/api/auth/${userId}/reject`,
         { rejectionReason: reason },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       if (response.data.success) {
         toast.success(response.data.message);
+        setRejectionReasons((prev) => ({ ...prev, [userId]: "" }));
         await fetchUsers();
       } else {
-        setError(response.data.message || "Failed to reject boat owner");
-        toast.error(response.data.message || "Failed to reject boat owner");
+        throw new Error(response.data.message || "Failed to reject boat owner");
       }
     } catch (err) {
+      console.error("Reject error:", err);
       setError(err.response?.data?.message || "Failed to reject boat owner");
       toast.error(err.response?.data?.message || "Failed to reject boat owner");
     } finally {
@@ -191,67 +247,34 @@ const useUsersTableData = () => {
     }
   };
 
+  const handleReject = async (userId) => {
+    const reason = rejectionReasons[userId];
+    if (!reason) {
+      toast.error("Please select a rejection reason");
+      return;
+    }
+
+    try {
+      await rejectBoatOwner(userId, reason);
+    } catch (err) {
+      console.error("Error in handleReject:", err);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  useEffect(() => {
+    console.log("Current rejectionReasons state:", rejectionReasons);
+    console.log("Current actionLoading state:", actionLoading);
+  }, [rejectionReasons, actionLoading]);
 
   return {
     columns,
     rows,
     loading,
     error,
-    rejectModal: (
-      <Dialog
-        open={showRejectModal}
-        onClose={() => setShowRejectModal(false)}
-        sx={{ "& .MuiDialog-paper": { backgroundColor: "rgba(255, 255, 255, 0.1)", color: "#fff" } }}
-      >
-        <DialogTitle>Reject Boat Owner</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Rejection Reason"
-            fullWidth
-            variant="outlined"
-            value={rejectionReason}
-            onChange={(e) => setRejectionReason(e.target.value)}
-            sx={{
-              "& .MuiInputBase-input": { color: "#fff" },
-              "& .MuiInputLabel-root": { color: "#aaa" },
-              "& .MuiOutlinedInput-root": {
-                "& fieldset": { borderColor: "#aaa" },
-                "&:hover fieldset": { borderColor: "#fff" },
-              },
-            }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setShowRejectModal(false)} sx={{ color: "#fff" }}>
-            Cancel
-          </Button>
-          <Button
-            onClick={async () => {
-              if (!rejectionReason.trim()) {
-                setError("Rejection reason is required");
-                toast.error("Rejection reason is required");
-                return;
-              }
-              await rejectBoatOwner(selectedUserId, rejectionReason);
-              setShowRejectModal(false);
-              setRejectionReason("");
-            }}
-            sx={{
-              color: "#fff",
-              backgroundColor: "#d32f2f",
-              "&:hover": { backgroundColor: "#b71c1c" },
-            }}
-          >
-            Confirm Reject
-          </Button>
-        </DialogActions>
-      </Dialog>
-    ),
   };
 };
 

@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -10,23 +9,39 @@ import FacebookSVG from "../assets/icons8-facebook.svg";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import backgroundImage from "../assets/backgroundlogin.jpg";
 import { EarthCanvas } from "./canvas";
-import {jwtDecode} from "jwt-decode"; // Add jwt-decode import
+import { jwtDecode } from "jwt-decode";
 
 const Login = () => {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
+  const [forgotPasswordStep, setForgotPasswordStep] = useState(0); // 0: login, 1: email input, 2: code + new password
+  const [forgotPasswordData, setForgotPasswordData] = useState({
+    email: "",
+    code: "",
+    newPassword: "",
+    confirmNewPassword: "",
+  });
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleForgotPasswordChange = (e) => {
+    setForgotPasswordData({ ...forgotPasswordData, [e.target.name]: e.target.value });
+  };
+
   const handleLogin = async (event) => {
     event.preventDefault();
+    setIsLoading(true);
+    setError(null);
     try {
       console.log("Sending login request with:", formData);
       const response = await axios.post("/api/auth/signin", formData, { withCredentials: true });
@@ -35,22 +50,70 @@ const Login = () => {
       const token = response.data.token;
       localStorage.setItem("token", token);
 
-      const tokenPayload = jwtDecode(token); // Use jwtDecode instead of manual parsing
+      const tokenPayload = jwtDecode(token);
       console.log("Token payload:", tokenPayload);
-      localStorage.setItem("userId", tokenPayload._id); // Set userId
+      localStorage.setItem("userId", tokenPayload._id);
       const userRole = tokenPayload.role;
 
-      if (userRole === 'admin') {
-        navigate("/dashboard");
+      if (userRole === "admin") {
+        navigate("/dashboard/tables");
       } else {
         navigate("/home");
       }
     } catch (error) {
-      console.error("Login error - Full error:", error.response?.data || error.message);
+      console.error("Login error:", error.response?.data || error.message);
       setError(error.response?.data?.message || "Login failed");
-      if (error.response?.data?.message === "Invalid credentials") {
-        console.log("Credential check failed - Possible hash mismatch. Check server logs for stored hash.");
-      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSendForgotPasswordCode = async (event) => {
+    event.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const response = await axios.patch("http://localhost:3000/api/auth/send-forgot-password-code", {
+        email: forgotPasswordData.email,
+      });
+      setSuccess(response.data.message);
+      setForgotPasswordStep(2);
+    } catch (error) {
+      console.error("Send forgot password code error:", error.response?.data || error.message);
+      setError(error.response?.data?.message || "Failed to send reset code");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyForgotPasswordCode = async (event) => {
+    event.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    if (forgotPasswordData.newPassword !== forgotPasswordData.confirmNewPassword) {
+      setError("New passwords do not match");
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const response = await axios.patch("http://localhost:3000/api/auth/verify-forgot-password-code", {
+        email: forgotPasswordData.email,
+        providedCode: forgotPasswordData.code,
+        newPassword: forgotPasswordData.newPassword,
+      });
+      setSuccess(response.data.message);
+      setForgotPasswordData({ email: "", code: "", newPassword: "", confirmNewPassword: "" });
+      setForgotPasswordStep(0);
+      setTimeout(() => navigate("/login"), 1500);
+    } catch (error) {
+      console.error("Verify forgot password code error:", error.response?.data || error.message);
+      setError(error.response?.data?.message || "Failed to reset password");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -67,7 +130,6 @@ const Login = () => {
       className="relative flex flex-col lg:flex-row items-center justify-center min-h-screen w-full bg-cover bg-center bg-no-repeat p-4 sm:p-8"
       style={{ backgroundImage: `url(${backgroundImage})` }}
     >
-      {/* Gradient Overlay */}
       <div className="absolute inset-0 bg-gradient-to-r from-blue-900/70 to-teal-700/70 z-0"></div>
 
       <motion.div
@@ -93,89 +155,236 @@ const Login = () => {
             {error}
           </motion.p>
         )}
+        {success && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-green-500 text-sm text-center mb-6 p-3 bg-green-100 rounded-lg"
+          >
+            {success}
+          </motion.p>
+        )}
 
-        <form onSubmit={handleLogin} className="flex flex-col gap-6">
-          <label className="flex flex-col">
-            <span className="text-gray-800 font-semibold mb-2">Email</span>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              className="p-4 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-4 focus:ring-blue-400 transition duration-300 placeholder-gray-400"
-              placeholder="Enter your email"
-            />
-          </label>
-
-          <label className="flex flex-col">
-            <span className="text-gray-800 font-semibold mb-2">Password</span>
-            <div className="relative">
+        {forgotPasswordStep === 0 && (
+          <form onSubmit={handleLogin} className="flex flex-col gap-6">
+            <label className="flex flex-col">
+              <span className="text-gray-800 font-semibold mb-2">Email</span>
               <input
-                type={showPassword ? "text" : "password"}
-                name="password"
-                value={formData.password}
+                type="email"
+                name="email"
+                value={formData.email}
                 onChange={handleChange}
                 required
-                className="w-full p-4 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-4 focus:ring-blue-400 transition duration-300 placeholder-gray-400"
-                placeholder="Enter your password"
+                className="p-4 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-4 focus:ring-blue-400 transition duration-300 placeholder-gray-400"
+                placeholder="Enter your email"
               />
+            </label>
+
+            <label className="flex flex-col">
+              <span className="text-gray-800 font-semibold mb-2">Password</span>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                  className="w-full p-4 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-4 focus:ring-blue-400 transition duration-300 placeholder-gray-400"
+                  placeholder="Enter your password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute top-1/2 right-4 transform -translate-y-1/2 text-gray-600 hover:text-blue-600 transition duration-200"
+                >
+                  {showPassword ? <FaEyeSlash size={22} /> : <FaEye size={22} />}
+                </button>
+              </div>
+            </label>
+
+            <p className="text-center text-gray-600 mt-4">
+              Forgot your password?{" "}
               <button
                 type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute top-1/2 right-4 transform -translate-y-1/2 text-gray-600 hover:text-blue-600 transition duration-200"
+                onClick={() => setForgotPasswordStep(1)}
+                className="text-blue-600 font-semibold hover:text-blue-800 transition duration-200"
               >
-                {showPassword ? <FaEyeSlash size={22} /> : <FaEye size={22} />}
+                Reset Password
               </button>
+            </p>
+
+            <motion.button
+              type="submit"
+              disabled={isLoading}
+              className="bg-gradient-to-r from-blue-600 to-teal-500 text-white py-4 rounded-xl font-bold text-lg hover:from-blue-700 hover:to-teal-600 transition duration-300 shadow-md"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              {isLoading ? "Logging in..." : "Log In"}
+            </motion.button>
+          </form>
+        )}
+
+        {forgotPasswordStep === 1 && (
+          <form onSubmit={handleSendForgotPasswordCode} className="flex flex-col gap-6">
+            <label className="flex flex-col">
+              <span className="text-gray-800 font-semibold mb-2">Email</span>
+              <input
+                type="email"
+                name="email"
+                value={forgotPasswordData.email}
+                onChange={handleForgotPasswordChange}
+                required
+                className="p-4 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-4 focus:ring-blue-400 transition duration-300 placeholder-gray-400"
+                placeholder="Enter your email"
+              />
+            </label>
+
+            <motion.button
+              type="submit"
+              disabled={isLoading}
+              className="bg-gradient-to-r from-blue-600 to-teal-500 text-white py-4 rounded-xl font-bold text-lg hover:from-blue-700 hover:to-teal-600 transition duration-300 shadow-md"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              {isLoading ? "Sending..." : "Send Reset Code"}
+            </motion.button>
+
+            <p className="text-center text-gray-600 mt-4">
+              Back to{" "}
+              <button
+                type="button"
+                onClick={() => setForgotPasswordStep(0)}
+                className="text-blue-600 font-semibold hover:text-blue-800 transition duration-200"
+              >
+                Login
+              </button>
+            </p>
+          </form>
+        )}
+
+        {forgotPasswordStep === 2 && (
+          <form onSubmit={handleVerifyForgotPasswordCode} className="flex flex-col gap-6">
+            <label className="flex flex-col">
+              <span className="text-gray-800 font-semibold mb-2">Verification Code</span>
+              <input
+                type="text"
+                name="code"
+                value={forgotPasswordData.code}
+                onChange={handleForgotPasswordChange}
+                required
+                className="p-4 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-4 focus:ring-blue-400 transition duration-300 placeholder-gray-400"
+                placeholder="Enter the code from your email"
+              />
+            </label>
+
+            <label className="flex flex-col">
+              <span className="text-gray-800 font-semibold mb-2">New Password</span>
+              <div className="relative">
+                <input
+                  type={showNewPassword ? "text" : "password"}
+                  name="newPassword"
+                  value={forgotPasswordData.newPassword}
+                  onChange={handleForgotPasswordChange}
+                  required
+                  className="w-full p-4 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-4 focus:ring-blue-400 transition duration-300 placeholder-gray-400"
+                  placeholder="Enter new password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute top-1/2 right-4 transform -translate-y-1/2 text-gray-600 hover:text-blue-600 transition duration-200"
+                >
+                  {showNewPassword ? <FaEyeSlash size={22} /> : <FaEye size={22} />}
+                </button>
+              </div>
+            </label>
+
+            <label className="flex flex-col">
+              <span className="text-gray-800 font-semibold mb-2">Confirm New Password</span>
+              <div className="relative">
+                <input
+                  type={showNewPassword ? "text" : "password"}
+                  name="confirmNewPassword"
+                  value={forgotPasswordData.confirmNewPassword}
+                  onChange={handleForgotPasswordChange}
+                  required
+                  className="w-full p-4 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-4 focus:ring-blue-400 transition duration-300 placeholder-gray-400"
+                  placeholder="Confirm new password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute top-1/2 right-4 transform -translate-y-1/2 text-gray-600 hover:text-blue-600 transition duration-200"
+                >
+                  {showNewPassword ? <FaEyeSlash size={22} /> : <FaEye size={22} />}
+                </button>
+              </div>
+            </label>
+
+            <motion.button
+              type="submit"
+              disabled={isLoading}
+              className="bg-gradient-to-r from-blue-600 to-teal-500 text-white py-4 rounded-xl font-bold text-lg hover:from-blue-700 hover:to-teal-600 transition duration-300 shadow-md"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              {isLoading ? "Resetting..." : "Reset Password"}
+            </motion.button>
+
+            <p className="text-center text-gray-600 mt-4">
+              Back to{" "}
+              <button
+                type="button"
+                onClick={() => setForgotPasswordStep(0)}
+                className="text-blue-600 font-semibold hover:text-blue-800 transition duration-200"
+              >
+                Login
+              </button>
+            </p>
+          </form>
+        )}
+
+        {forgotPasswordStep === 0 && (
+          <>
+            <div className="flex items-center justify-between my-6">
+              <hr className="w-1/3 border-gray-300" />
+              <span className="text-gray-400 font-medium">OR</span>
+              <hr className="w-1/3 border-gray-300" />
             </div>
-          </label>
 
-          <motion.button
-            type="submit"
-            className="bg-gradient-to-r from-blue-600 to-teal-500 text-white py-4 rounded-xl font-bold text-lg hover:from-blue-700 hover:to-teal-600 transition duration-300 shadow-md"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            Log In
-          </motion.button>
-        </form>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <motion.button
+                onClick={handleFacebookLogin}
+                className="flex-1 flex items-center justify-center bg-blue-800 text-white py-3 rounded-xl hover:bg-blue-900 transition duration-300 shadow-md"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <img src={FacebookSVG} alt="Facebook" className="w-6 h-6 mr-3" />
+                Login with Facebook
+              </motion.button>
+              <motion.button
+                onClick={handleGoogleLogin}
+                className="flex-1 flex items-center justify-center bg-red-600 text-white py-3 rounded-xl hover:bg-red-700 transition duration-300 shadow-md"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <img src={GoogleSvg} alt="Google" className="w-6 h-6 mr-3" />
+                Login with Google
+              </motion.button>
+            </div>
 
-        <div className="flex items-center justify-between my-6">
-          <hr className="w-1/3 border-gray-300" />
-          <span className="text-gray-400 font-medium">OR</span>
-          <hr className="w-1/3 border-gray-300" />
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-4">
-          <motion.button
-            onClick={handleFacebookLogin}
-            className="flex-1 flex items-center justify-center bg-blue-800 text-white py-3 rounded-xl hover:bg-blue-900 transition duration-300 shadow-md"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <img src={FacebookSVG} alt="Facebook" className="w-6 h-6 mr-3" />
-            Login with Facebook
-          </motion.button>
-          <motion.button
-            onClick={handleGoogleLogin}
-            className="flex-1 flex items-center justify-center bg-red-600 text-white py-3 rounded-xl hover:bg-red-700 transition duration-300 shadow-md"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <img src={GoogleSvg} alt="Google" className="w-6 h-6 mr-3" />
-            Login with Google
-          </motion.button>
-        </div>
-
-        <p className="text-center text-gray-600 mt-8">
-          New to the crew?{" "}
-          <a
-            href="/contact"
-            className="text-blue-600 font-semibold hover:text-blue-800 transition duration-200"
-          >
-            Sign Up
-          </a>
-        </p>
+            <p className="text-center text-gray-600 mt-8">
+              New to the crew?{" "}
+              <a
+                href="/contact"
+                className="text-blue-600 font-semibold hover:text-blue-800 transition duration-200"
+              >
+                Sign Up
+              </a>
+            </p>
+          </>
+        )}
       </motion.div>
 
       <motion.div

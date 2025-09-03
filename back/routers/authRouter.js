@@ -116,18 +116,23 @@ router.put('/:id/reject',
   authController.rejectBoatOwner
 );
 
+router.put(
+  "/:id/verify",
+  passport.authenticate('jwt', { session: false }),
+  authController.verifyBoatOwner
+);
+
 
 
 router.get('/verify-hash', authController.verifyHash);
 
 // Routes pour la gestion des utilisateurs
 router.post("/signup", authController.signup);
-
+router.patch('/change-password', identifier, authController.changePassword);
 router.post("/signout", identifier, authController.signout);
 router.post('/fix-passwords', authController.fixAllPasswords);
 router.patch('/send-verification-code', identifier, authController.sendVerificationCode);
 router.patch('/verify-verification-code', identifier, authController.verifyVerificationCode);
-router.patch('/change-password', identifier, authController.changePassword);
 router.patch('/send-forgot-password-code', authController.sendForgotPasswordCode);
 router.patch('/verify-forgot-password-code', authController.verifyForgotPasswordCode);
 
@@ -219,11 +224,6 @@ res.status(500).json({ error: "Échec de l'authentification LinkedIn" });
 }
 });
 
-router.patch(
-  '/verify-boat-owner/:id',
-  identifier, 
-  authController.verifyBoatOwner
-);
 
 router.get('/users/:id/details', async (req, res) => {
   try {

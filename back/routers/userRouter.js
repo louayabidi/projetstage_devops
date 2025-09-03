@@ -13,17 +13,13 @@ const {
   getCurrentUser,
   getAllBoatOwners,
   getUserDetails,
-  verifyBoatOwner,
+//  verifyBoatOwner,
   
 	
 } = require('../controllers/userController');
 
 
-router.put(
-  "/:userId/verify",
-  passport.authenticate('jwt', { session: false }),
-  verifyBoatOwner
-);
+
 
 router.post('/upload-profile',
   passport.authenticate('jwt', { session: false }),

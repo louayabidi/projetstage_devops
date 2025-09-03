@@ -54,12 +54,20 @@ exports.acceptCodeSchema = Joi.object({
 });
 
 exports.changePasswordSchema = Joi.object({
-	newPassword: Joi.string()
-		.required()
-		.pattern(new RegExp('^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).{8,}$')),
-	oldPassword: Joi.string()
-		.required()
-		.pattern(new RegExp('^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).{8,}$')),
+  oldPassword: Joi.string().min(8).required().messages({
+    "string.empty": "Old password is required",
+    "string.min": "Old password must be at least 8 characters long",
+  }),
+  newPassword: Joi.string()
+    .min(8)
+    .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,}$/)
+    .required()
+    .messages({
+      "string.empty": "New password is required",
+      "string.min": "New password must be at least 8 characters long",
+      "string.pattern.base":
+        "New password must contain at least one uppercase letter, one lowercase letter, and one number",
+    }),
 });
 
 exports.acceptFPCodeSchema = Joi.object({

@@ -9,7 +9,7 @@ const boatSchema = new mongoose.Schema(
     boatLicense: { type: String, unique: true, required: true },
     amenities: [{ type: String }],
     photos: [{ type: String }],
-    description: { type: String, required: true },
+    description: { type: String},
     isVerified: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now },
     isRejected: { type: Boolean, default: false },  

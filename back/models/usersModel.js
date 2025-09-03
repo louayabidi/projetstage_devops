@@ -56,14 +56,14 @@ rejected: {
     type: Boolean, 
     default: false 
   },
-  verificationCode: { 
+/*  verificationCode: { 
     type: String, 
     select: false 
   },
   verificationCodeValidation: { 
     type: Date, 
     select: false 
-  },
+  },*/
   // Booking references
   bookingRequests: [{ 
     type: mongoose.Schema.Types.ObjectId, 

@@ -25,7 +25,7 @@ import BoatOwnerDetail from "./dashboard/layouts/tables/data/BoatOwnerDetail";
 import Layout from "./components/Layout"; 
 import OwnerCalendar from './components/booking/OwnerCalendar';
 import ChangePassword from "./components/User/ChangePassword";
-
+import FindCompanions from './components/travelInterest/FindCompanions';
 
 
 
@@ -40,6 +40,16 @@ function App() {
       <Route path="/boats" element={<Layout><Boats /></Layout>} />
       <Route path="/boats/:id" element={<Layout><BoatDetails /></Layout>} />
       <Route path="/change-password" element={<ChangePassword />} />
+
+
+<Route
+  path="/find-companions"
+  element={
+    <ProtectedRoute>
+      <Layout><FindCompanions /></Layout>
+    </ProtectedRoute>
+  }
+/>
 
       {/* Protected Routes */}
       <Route

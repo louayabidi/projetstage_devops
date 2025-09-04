@@ -22,6 +22,7 @@ const User = require('./models/usersModel');
 const Boat = require('./models/boat'); 
 const bookingRouter = require('./routers/bookingRouter');
 const notificationRoutes = require('./routers/notificationRoutes');
+const travelInterestRouter = require("./routers/travelInterest");
 // Initialize Socket.IO
 const io = new Server(server, {
   cors: {
@@ -116,6 +117,7 @@ app.use('/api/users', userRouter);
 app.use('/api/boats', boatRouter);
 app.use('/api/bookings', bookingRouter);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/travel-interests', travelInterestRouter);
 app.get('/', (req, res) => {
   res.json({ message: 'Hello from the server' });
 });

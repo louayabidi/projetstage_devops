@@ -1,4 +1,4 @@
-
+require('dotenv').config();
 const express = require("express");
 const path = require("path");
 const helmet = require("helmet");
@@ -30,7 +30,7 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(session({
-  secret: process.env.SESSION_SECRET,
+  secret: process.env.SESSION_SECRET || 'default-session-secret',
   resave: false,
   saveUninitialized: true,
   cookie: {
@@ -50,8 +50,18 @@ app.use('/api/users', userRouter);
 app.use('/api/boats', boatRouter);
 app.use('/api/bookings', bookingRouter);
 app.use('/api/travel-interests', travelInterestRouter);
+
 // Health route for testing
-app.get("/health", (req, res) => res.status(200).send("ok"));
+app.get("/health", (req, res) => {
+  console.log('Health route accessed');
+  res.status(200).send("ok");
+});
+
+// Error-handling middleware
+app.use((err, req, res, next) => {
+  console.error('Error:', err.stack);
+  res.status(500).json({ error: 'Internal Server Error', details: err.message });
+});
 
 app.get('/', (req, res) => res.json({ message: 'Hello from the server' }));
 

@@ -35,5 +35,8 @@ jobs:
       - name: Install frontend deps & run tests
         run: |
           cd front
+          HUSKY=0 npm install
           npm install
           npm run test
+        env:
+          NODE_ENV: test

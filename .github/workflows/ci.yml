@@ -24,7 +24,7 @@ jobs:
         run: |
           cd back
           HUSKY=0 npm install
-          npm test
+          NODE_ENV=test npm test
         env:
          TOKEN_SECRET: ${{ secrets.TOKEN_SECRET }}
          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}

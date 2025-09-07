@@ -19,24 +19,24 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-
       - name: Install backend deps & run tests
         run: |
           cd back
           HUSKY=0 npm install
           NODE_ENV=test npm test
         env:
-         TOKEN_SECRET: ${{ secrets.TOKEN_SECRET }}
-         GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-         GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-         GOOGLE_CALLBACK_URL: ${{ secrets.GOOGLE_CALLBACK_URL }}
-         FACEBOOK_APP_ID: ${{ secrets.FACEBOOK_APP_ID }}
-         FACEBOOK_APP_SECRET: ${{ secrets.FACEBOOK_APP_SECRET }}
+          TOKEN_SECRET: ${{ secrets.TOKEN_SECRET }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_CALLBACK_URL: ${{ secrets.GOOGLE_CALLBACK_URL }}
+          FACEBOOK_APP_ID: ${{ secrets.FACEBOOK_APP_ID }}
+          FACEBOOK_APP_SECRET: ${{ secrets.FACEBOOK_APP_SECRET }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          MONGODB_URI: mongodb://localhost:27017/your_database
       - name: Install frontend deps & run tests
         run: |
           cd front
           HUSKY=0 npm install
-          npm install
-          npm run test
+          NODE_ENV=test npm run test
         env:
           NODE_ENV: test

@@ -26,7 +26,7 @@ import Layout from "./components/Layout";
 import OwnerCalendar from './components/booking/OwnerCalendar';
 import ChangePassword from "./components/User/ChangePassword";
 import FindCompanions from './components/travelInterest/FindCompanions';
-
+import SubmitReview from './components/booking/SubmitReview';
 
 
 function App() {
@@ -105,6 +105,18 @@ function App() {
           </ProtectedRoute>
         }
       />
+
+
+        <Route
+        path="/bookings/:bookingId/review"
+        element={
+          <ProtectedRoute>
+            <Layout><SubmitReview /></Layout>
+          </ProtectedRoute>
+        }
+        />    
+
+
       <Route
         path="/notifications"
         element={

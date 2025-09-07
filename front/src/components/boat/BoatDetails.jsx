@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Container, Row, Col, Card, Button, Spinner, Alert } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Spinner, Alert, Form, Badge } from 'react-bootstrap';
 import { 
   FaShip, 
   FaUsers, 
@@ -11,11 +11,13 @@ import {
   FaCalendar, 
   FaMoneyBillWave 
 } from 'react-icons/fa';
-
 import axios from 'axios';
 import './BoatDetails.css'; 
 import ImageGallery from 'react-image-gallery';
 import 'react-image-gallery/styles/css/image-gallery.css';
+
+// Set axios base URL
+axios.defaults.baseURL = 'http://localhost:3000';
 
 const BoatDetails = () => {
   const { id } = useParams();
@@ -25,28 +27,131 @@ const BoatDetails = () => {
   const [error, setError] = useState(null);
   const [mainImage, setMainImage] = useState(null);
   const [activeTab, setActiveTab] = useState('description');
-const handleReservation = () => {
-  navigate(`/reservation/${id}`);
-}; 
+  const [reviews, setReviews] = useState([]);
+  const [averageRating, setAverageRating] = useState(0);
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState('');
+  const [bookingId, setBookingId] = useState('');
+  const [reviewError, setReviewError] = useState('');
+  const [reviewSuccess, setReviewSuccess] = useState('');
+  const [userBookings, setUserBookings] = useState([]);
+  const [reviewsFetchError, setReviewsFetchError] = useState('');
 
-  useEffect(() => {
-    const fetchBoatDetails = async () => {
-      try {
-        const response = await axios.get(`/api/boats/${id}`);
-        console.log('Boat data:', response.data);
-        setBoat(response.data);
-        if (response.data.photos && response.data.photos.length > 0) {
-          setMainImage(response.data.photos[0]);
-        }
-      } catch (err) {
-        setError(err.response?.data?.message || 'Failed to fetch boat details');
-      } finally {
+  const handleReservation = () => {
+    navigate(`/reservation/${id}`);
+  };
+
+ useEffect(() => {
+  const fetchBoatDetails = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('You must be logged in to view boat details');
         setLoading(false);
+        navigate('/login');
+        return;
       }
-    };
 
-    fetchBoatDetails();
-  }, [id]);
+      // Fetch boat details
+      const boatResponse = await axios.get(`/api/boats/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      console.log('Boat data:', boatResponse.data);
+      setBoat(boatResponse.data);
+      if (boatResponse.data.photos && boatResponse.data.photos.length > 0) {
+        setMainImage(boatResponse.data.photos[0]);
+      }
+
+      // Fetch boat owner reviews
+      if (boatResponse.data.owner?._id) {
+        try {
+          const reviewsResponse = await axios.get(`/api/bookings/boat-owner/${boatResponse.data.owner._id}/reviews`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          console.log('Reviews data:', reviewsResponse.data);
+          setReviews(reviewsResponse.data.reviews || []);
+          setAverageRating(reviewsResponse.data.averageRating || 0);
+        } catch (reviewErr) {
+          console.error('Failed to fetch reviews:', reviewErr.response?.data);
+          setReviews([]);
+          setAverageRating(0);
+          setReviewsFetchError(reviewErr.response?.data?.message || 'Failed to fetch reviews');
+        }
+      }
+
+      // Fetch passenger bookings
+      try {
+        const bookingsResponse = await axios.get(`/api/bookings/passenger`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        console.log('Passenger bookings:', bookingsResponse.data.bookings);
+        const filteredBookings = bookingsResponse.data.bookings.filter(
+          b => b.boat && b.boat._id && b.boat._id.toString() === id && b.status === 'confirmed'
+        );
+        console.log('Filtered user bookings:', filteredBookings);
+        setUserBookings(filteredBookings || []);
+      } catch (bookingErr) {
+        console.error('Failed to fetch bookings:', bookingErr.response?.data);
+        setUserBookings([]);
+        setError('Failed to fetch bookings. Please try again.');
+      }
+    } catch (err) {
+      console.error('Fetch error:', err);
+      setError(err.response?.data?.message || 'Failed to fetch boat details');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchBoatDetails();
+}, [id, navigate]);
+
+  const handleReviewSubmit = async (e) => {
+    e.preventDefault();
+    setReviewError('');
+    setReviewSuccess('');
+
+    if (!bookingId) {
+      setReviewError('Please select a booking to review');
+      return;
+    }
+
+    if (!rating) {
+      setReviewError('Please select a rating');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(
+        `/api/bookings/${bookingId}/review`,
+        { bookingId, rating, comment },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setReviewSuccess(response.data.message);
+      setReviews([...reviews, response.data.review]);
+      // Refetch reviews to update averageRating
+      if (boat.owner?._id) {
+        try {
+          const reviewsResponse = await axios.get(`/api/bookings/boat-owner/${boat.owner._id}/reviews`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          setReviews(reviewsResponse.data.reviews || []);
+          setAverageRating(reviewsResponse.data.averageRating || 0);
+          setReviewsFetchError('');
+        } catch (reviewErr) {
+          setReviewsFetchError(reviewErr.response?.data?.message || 'Failed to fetch updated reviews');
+        }
+      }
+      setRating(0);
+      setComment('');
+      setBookingId('');
+    } catch (err) {
+      console.error('Review submission error:', err);
+      setReviewError(err.response?.data?.message || 'Failed to submit review');
+    }
+  };
 
   if (loading) {
     return (
@@ -85,7 +190,6 @@ const handleReservation = () => {
     );
   }
 
-  // Prepare images for the gallery
   const galleryImages = boat.photos?.map(photo => ({
     original: `http://localhost:3000${photo}`,
     thumbnail: `http://localhost:3000${photo}`,
@@ -101,7 +205,6 @@ const handleReservation = () => {
         <Col lg={8}>
           <Card className="border-0 shadow-sm">
             <Card.Body>
-              {/* Main Image Gallery */}
               {galleryImages.length > 0 ? (
                 <ImageGallery
                   items={galleryImages}
@@ -120,7 +223,6 @@ const handleReservation = () => {
                 </div>
               )}
 
-              {/* Boat Info Tabs */}
               <div className="boat-tabs mt-4">
                 <ul className="nav nav-tabs">
                   <li className="nav-item">
@@ -145,6 +247,14 @@ const handleReservation = () => {
                       onClick={() => setActiveTab('amenities')}
                     >
                       Amenities
+                    </button>
+                  </li>
+                  <li className="nav-item">
+                    <button
+                      className={`nav-link ${activeTab === 'reviews' ? 'active' : ''}`}
+                      onClick={() => setActiveTab('reviews')}
+                    >
+                      Reviews
                     </button>
                   </li>
                 </ul>
@@ -208,6 +318,103 @@ const handleReservation = () => {
                       )}
                     </div>
                   )}
+
+                  {activeTab === 'reviews' && (
+                    <div className="tab-pane">
+                      <h4>Reviews ({reviews.length})</h4>
+                      <p>Average Rating: {averageRating.toFixed(1)} <FaStar className="text-warning" /></p>
+                      {reviewsFetchError && (
+                        <Alert variant="warning">
+                          {reviewsFetchError}
+                        </Alert>
+                      )}
+                      {reviews.length > 0 ? (
+                        reviews.map((review, index) => (
+                          <Card key={index} className="mb-3">
+                            <Card.Body>
+                              <div className="d-flex align-items-center mb-2">
+                                <img
+                                  src={review.passenger?.photo ? `http://localhost:3000${review.passenger.photo}` : '/default-avatar.jpg'}
+                                  alt={`${review.passenger?.firstName || 'Anonymous'} ${review.passenger?.lastName || ''}`}
+                                  className="me-2"
+                                  style={{ width: '40px', height: '40px', borderRadius: '50%' }}
+                                />
+                                <div>
+                                  <strong>{review.passenger?.firstName || 'Anonymous'} {review.passenger?.lastName || ''}</strong>
+                                  <div>
+                                    {[...Array(5)].map((_, i) => (
+                                      <FaStar key={i} className={i < review.rating ? 'text-warning' : 'text-muted'} />
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                              <p>{review.comment || 'No comment provided.'}</p>
+                              <small className="text-muted">{new Date(review.createdAt).toLocaleDateString()}</small>
+                            </Card.Body>
+                          </Card>
+                        ))
+                      ) : (
+                        <p>No reviews yet.</p>
+                      )}
+
+                      {userBookings.length > 0 ? (
+                        <Card className="mt-4">
+                          <Card.Body>
+                            <h5>Submit a Review</h5>
+                            {reviewError && <Alert variant="danger">{reviewError}</Alert>}
+                            {reviewSuccess && <Alert variant="success">{reviewSuccess}</Alert>}
+                            <Form onSubmit={handleReviewSubmit}>
+                              <Form.Group className="mb-3">
+                                <Form.Label>Booking</Form.Label>
+                                <Form.Select
+                                  value={bookingId}
+                                  onChange={(e) => setBookingId(e.target.value)}
+                                  required
+                                >
+                                  <option value="">Select a booking</option>
+                                  {userBookings.map((booking) => (
+                                    <option key={booking._id} value={booking._id}>
+                                      Booking from {new Date(booking.startDate).toLocaleDateString()} to {new Date(booking.endDate).toLocaleDateString()}
+                                    </option>
+                                  ))}
+                                </Form.Select>
+                              </Form.Group>
+                              <Form.Group className="mb-3">
+                                <Form.Label>Rating</Form.Label>
+                                <div>
+                                  {[...Array(5)].map((_, i) => (
+                                    <FaStar
+                                      key={i}
+                                      className={i < rating ? 'text-warning' : 'text-muted'}
+                                      style={{ cursor: 'pointer', fontSize: '1.5rem' }}
+                                      onClick={() => setRating(i + 1)}
+                                    />
+                                  ))}
+                                </div>
+                              </Form.Group>
+                              <Form.Group className="mb-3">
+                                <Form.Label>Comment</Form.Label>
+                                <Form.Control
+                                  as="textarea"
+                                  rows={4}
+                                  value={comment}
+                                  onChange={(e) => setComment(e.target.value)}
+                                  placeholder="Share your experience..."
+                                />
+                              </Form.Group>
+                              <Button type="submit" variant="primary" disabled={!rating || !bookingId}>
+                                Submit Review
+                              </Button>
+                            </Form>
+                          </Card.Body>
+                        </Card>
+                      ) : (
+                        <Alert variant="info" className="mt-4">
+                          You need a confirmed booking to submit a review for this boat owner.
+                        </Alert>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </Card.Body>
@@ -220,19 +427,20 @@ const handleReservation = () => {
               <h5 className="mb-0">Reserve This Boat</h5>
             </Card.Header>
             <Card.Body>
-           {boat.owner && (
-  <div className="mb-3">
-    <h6>Boat Owner</h6>
-    <p className="mb-1">
-      {boat.owner.firstName} {boat.owner.lastName}
-    </p>
-    {boat.owner.verified && (
-      <Badge bg="success" className="small">
-        Verified Owner
-      </Badge>
-    )}
-  </div>
-)}
+              {boat.owner && (
+                <div className="mb-3">
+                  <h6>Boat Owner</h6>
+                  <p className="mb-1">
+                    {boat.owner.firstName} {boat.owner.lastName}
+                  </p>
+                  {boat.owner.verified && (
+                    <Badge bg="success" className="small">
+                      Verified Owner
+                    </Badge>
+                  )}
+                  <p>Average Rating: {averageRating.toFixed(1)} <FaStar className="text-warning" /></p>
+                </div>
+              )}
               
               <div className="d-grid gap-2">
                 <Button 
@@ -260,4 +468,5 @@ const handleReservation = () => {
     </Container>
   );
 };
+
 export default BoatDetails;

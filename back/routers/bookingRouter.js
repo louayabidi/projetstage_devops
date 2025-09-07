@@ -12,9 +12,32 @@ const {
   getBookingById,
   updatePassengerLocation,
   getWeather,
+  getBoatOwnerReviews,
+  submitReview,
+  getPassengerBookings,
+
 } = require('../controllers/bookingController');
 
 
+
+router.get(
+  '/passenger',
+  passport.authenticate('jwt', { session: false }),
+  getPassengerBookings
+);
+
+router.post(
+  '/:bookingId/review',
+  passport.authenticate('jwt', { session: false }),
+  submitReview
+);
+
+// Get reviews for a boat owner
+router.get(
+  '/boat-owner/:boatOwnerId/reviews',
+  passport.authenticate('jwt', { session: false }),
+  getBoatOwnerReviews
+);
 
 // Get weather for a location
 router.get(

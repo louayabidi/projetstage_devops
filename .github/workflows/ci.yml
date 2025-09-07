@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [ "main" ]
   push:
-    branches: [ "main", "dev" ]
+    branches: [ "main" ]
 
 jobs:
   test:
@@ -23,7 +23,7 @@ jobs:
       - name: Install backend deps & run tests
         run: |
           cd back
-          npm install
+          HUSKY=0 npm install
           npm test
 
       - name: Install frontend deps & run tests

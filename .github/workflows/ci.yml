@@ -30,7 +30,8 @@ jobs:
          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
          GOOGLE_CALLBACK_URL: ${{ secrets.GOOGLE_CALLBACK_URL }}
-
+         FACEBOOK_APP_ID: ${{ secrets.FACEBOOK_APP_ID }}
+         FACEBOOK_APP_SECRET: ${{ secrets.FACEBOOK_APP_SECRET }}
       - name: Install frontend deps & run tests
         run: |
           cd front

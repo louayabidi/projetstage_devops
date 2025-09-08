@@ -6,7 +6,7 @@ module.exports = {
     '\\.(jpg|jpeg|png|gif|svg)$': 'jest-transform-stub'
   },
   transformIgnorePatterns: [
-    '/node_modules/(?!maath|react-github-btn/)' 
+    '/node_modules/(?!maath|react-github-btn/)'
   ],
   moduleFileExtensions: ['js', 'jsx', 'ts', 'tsx'],
   moduleNameMapper: {
@@ -17,7 +17,9 @@ module.exports = {
     ],
     '^hoc/(.*)$': '<rootDir>/src/hoc/$1',
     '^utils/(.*)$': '<rootDir>/src/utils/$1',
-    '^examples/(.*)$': '<rootDir>/src/dashboard/examples/$1'
+    '^examples/(.*)$': '<rootDir>/src/dashboard/examples/$1',
+    // 👇 Add this
+    '\\.(css|less|scss|sass)$': 'identity-obj-proxy'
   },
   moduleDirectories: ['node_modules', 'src']
 };

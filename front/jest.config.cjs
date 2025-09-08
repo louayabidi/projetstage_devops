@@ -6,7 +6,7 @@ module.exports = {
     '\\.(jpg|jpeg|png|gif|svg)$': 'jest-transform-stub'
   },
   transformIgnorePatterns: [
-    '/node_modules/(?!maath/)'
+    '/node_modules/(?!maath|react-github-btn/)' 
   ],
   moduleFileExtensions: ['js', 'jsx', 'ts', 'tsx'],
   moduleNameMapper: {

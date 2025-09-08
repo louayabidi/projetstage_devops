@@ -11,7 +11,10 @@ module.exports = {
   moduleFileExtensions: ['js', 'jsx', 'ts', 'tsx'],
   moduleNameMapper: {
     '^components/(.*)$': '<rootDir>/src/dashboard/components/$1',
-    '^assets/(.*)$': '<rootDir>/src/assets/$1',
+    '^assets/(.*)$': [
+      '<rootDir>/src/dashboard/assets/$1',
+      '<rootDir>/src/assets/$1'
+    ],
     '^hoc/(.*)$': '<rootDir>/src/hoc/$1',
     '^utils/(.*)$': '<rootDir>/src/utils/$1',
     '^examples/(.*)$': '<rootDir>/src/dashboard/examples/$1'

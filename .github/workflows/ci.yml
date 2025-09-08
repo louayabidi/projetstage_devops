@@ -32,7 +32,7 @@ jobs:
           FACEBOOK_APP_ID: ${{ secrets.FACEBOOK_APP_ID }}
           FACEBOOK_APP_SECRET: ${{ secrets.FACEBOOK_APP_SECRET }}
           SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
-          MONGODB_URI: mongodb://localhost:27017/your_database
+          MONGODB_URI: mongodb+srv://louay3139:JZeTaSzxBE9JGV1j@cluster0.zawvdgt.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
       - name: Install frontend deps & run tests
         run: |
           cd front

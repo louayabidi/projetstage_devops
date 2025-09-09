@@ -12,7 +12,7 @@ module.exports = {
   moduleNameMapper: {
   // Mock packages
   '^react-github-btn$': '<rootDir>/src/__mocks__/react-github-btn.js',
-
+  '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
   // Mock static files
   '^assets/(.*)\\.(jpg|jpeg|png|gif|svg)$': 'jest-transform-stub',
   '^dashboard-assets/(.*)\\.(jpg|jpeg|png|gif|svg)$': 'jest-transform-stub',

@@ -17,12 +17,12 @@
 */
 
 // Vision UI Dashboard React helper functions
-import pxToRem from "assets/theme/functions/pxToRem";
+import pxToRem from "dashboard-assets/theme/functions/pxToRem";
 
 // Vision UI Dashboard React base styles
-import colors from "assets/theme/base/colors";
-import boxShadows from "assets/theme/base/boxShadows";
-import borders from "assets/theme/base/borders";
+import colors from "dashboard-assets/theme/base/colors";  
+import boxShadows from "dashboard-assets/theme/base/boxShadows";
+import borders from "dashboard-assets/theme/base/borders";
 
 const { transparent } = colors;
 const { lg } = boxShadows;

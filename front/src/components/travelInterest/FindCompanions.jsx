@@ -8,7 +8,7 @@ import MapComponent from '../Map/MapComponent';
 
 // Configure Axios with base URL
 const api = axios.create({
-  baseURL: import.meta.env.REACT_APP_API_URL || 'http://localhost:3000',
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:3000',
 });
 
 const FindCompanions = () => {
@@ -39,7 +39,8 @@ const FindCompanions = () => {
   const [success, setSuccess] = useState(false);
 
   // Log baseURL for debugging
-  console.log('Axios baseURL:', import.meta.env.VITE_API_URL || 'http://localhost:3000');
+ const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+console.log('Axios baseURL:', apiUrl); 
 
   // Check if search button should be enabled
   const isSearchEnabled = () => {

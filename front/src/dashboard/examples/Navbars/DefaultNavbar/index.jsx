@@ -38,9 +38,9 @@ import DefaultNavbarLink from "examples/Navbars/DefaultNavbar/DefaultNavbarLink"
 import DefaultNavbarMobile from "examples/Navbars/DefaultNavbar/DefaultNavbarMobile";
 
 // Vision UI Dashboard React base styles
-import breakpoints from "assets/theme/base/breakpoints";
-import colors from "assets/theme/base/colors";
-import borders from "assets/theme/base/borders";
+import breakpoints from "dashboard-assets/theme/base/breakpoints";
+import colors from "dashboard-assets/theme/base/colors";  
+import borders from "dashboard-assets/theme/base/borders";
 
 function DefaultNavbar({ transparent, light, action }) {
   const { borderCol } = colors;

@@ -25,7 +25,7 @@ import Tabs from "@mui/material/Tabs";
 // Images
 import burceMars from "assets/images/avatar-simmmple.png";
 // Vision UI Dashboard React base styles
-import breakpoints from "assets/theme/base/breakpoints";
+import breakpoints from "dashboard-assets/theme/base/breakpoints";
 import VuiAvatar from "components/VuiAvatar";
 // Vision UI Dashboard React components
 import VuiBox from "components/VuiBox";

@@ -19,7 +19,8 @@
 // @mui material components
 import Drawer from "@mui/material/Drawer";
 import { styled } from "@mui/material/styles";
-import linearGradient from "assets/theme/functions/linearGradient";
+import linearGradient from "dashboard-assets/theme/functions/linearGradient";
+
 
 export default styled(Drawer)(({ theme, ownerState }) => {
   const { palette, boxShadows, transitions, breakpoints, functions } = theme;

@@ -39,9 +39,9 @@ import GradientBorder from "examples/GradientBorder";
 
 // Vision UI Dashboard assets
 import radialGradient from "assets/theme/functions/radialGradient";
-import rgba from "assets/theme/functions/rgba";
+import rgba from "dashboard-assets/theme/functions/rgba";
 import palette from "assets/theme/base/colors";
-import borders from "assets/theme/base/borders";
+import borders from "dashboard-assets/theme/base/borders";
 
 // Authentication layout components
 import CoverLayout from "layouts/authentication/components/CoverLayout";

@@ -17,11 +17,11 @@
 */
 
 // Vision UI Dashboard React Base Styles
-import typography from "assets/theme/base/typography";
-import borders from "assets/theme/base/borders";
+import typography from "dashboard-assets/theme/base/typography";
+import borders from "dashboard-assets/theme/base/borders";
 
 // Vision UI Dashboard React Helper Functions
-import pxToRem from "assets/theme/functions/pxToRem";
+import pxToRem from "dashboard-assets/theme/functions/pxToRem";
 
 const { fontWeightBold, size } = typography;
 const { borderRadius } = borders;

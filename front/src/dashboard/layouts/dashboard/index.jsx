@@ -31,11 +31,12 @@ import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 import Footer from "examples/Footer";
 import MiniStatisticsCard from "examples/Cards/StatisticsCards/MiniStatisticsCard";
-import linearGradient from "assets/theme/functions/linearGradient";
+import linearGradient from "dashboard-assets/theme/functions/linearGradient";
+
 
 // Vision UI Dashboard React base styles
-import typography from "assets/theme/base/typography";
-import colors from "assets/theme/base/colors";
+import typography from "dashboard-assets/theme/base/typography";
+import colors from "dashboard-assets/theme/base/colors";  
 
 // Dashboard layout components
 import WelcomeMark from "layouts/dashboard/components/WelcomeMark";

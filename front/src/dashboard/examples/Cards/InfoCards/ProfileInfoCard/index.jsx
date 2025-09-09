@@ -28,8 +28,8 @@ import VuiBox from "components/VuiBox";
 import VuiTypography from "components/VuiTypography";
 
 // Vision UI Dashboard React base styles
-import colors from "assets/theme/base/colors";
-import typography from "assets/theme/base/typography";
+import colors from "dashboard-assets/theme/base/colors";  
+import typography from "dashboard-assets/theme/base/typography";
 
 function ProfileInfoCard({ title, description, info, social }) {
   const labels = [];

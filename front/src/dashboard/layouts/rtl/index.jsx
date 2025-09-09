@@ -19,10 +19,11 @@
 import { Card, Stack } from "@mui/material";
 // @mui material components
 import Grid from "@mui/material/Grid";
-import colors from "assets/theme/base/colors";
+import colors from "dashboard-assets/theme/base/colors";  
 
 // Vision UI Dashboard React base styles
-import linearGradient from "assets/theme/functions/linearGradient";
+import linearGradient from "dashboard-assets/theme/functions/linearGradient";
+
 
 // Vision UI Dashboard React components
 import VuiBox from "components/VuiBox";

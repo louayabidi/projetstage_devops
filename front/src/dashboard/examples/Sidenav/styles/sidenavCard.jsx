@@ -1,5 +1,5 @@
 // Images
-import backgroundImage from "assets/images/sidenav/sidenav-card-background.png";
+import backgroundImage from "dashboard-assets/images/sidenav/sidenav-card-background.png";
 
 function card(theme, ownerState) {
   const { borders, functions, transitions, breakpoints } = theme;

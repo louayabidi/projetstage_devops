@@ -27,7 +27,7 @@ import Icon from "@mui/material/Icon";
 // Vision UI Dashboard React components
 import VuiBox from "components/VuiBox";
 import VuiTypography from "components/VuiTypography";
-import colors from "assets/theme/base/colors";
+import colors from "dashboard-assets/theme/base/colors";  
 
 function MiniStatisticsCard({ bgColor, title, count, percentage, icon, direction }) {
   const { info } = colors;

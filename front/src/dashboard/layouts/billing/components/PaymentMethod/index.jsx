@@ -28,10 +28,10 @@ import VuiTypography from "components/VuiTypography";
 import VuiButton from "components/VuiButton";
 
 // Vision UI Dashboard React base styles
-import borders from "assets/theme/base/borders";
+import borders from "dashboard-assets/theme/base/borders";
 
 // Images
-import colors from "assets/theme/base/colors";
+import colors from "dashboard-assets/theme/base/colors";  
 
 // Vision UI Dashboard component exemples
 import Mastercard from "examples/Icons/Mastercard";

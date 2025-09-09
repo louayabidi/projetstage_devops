@@ -8,6 +8,7 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
        'context': path.resolve(__dirname, './src/dashboard/context'),
+      'dashboard-assets': path.resolve(__dirname, 'src/dashboard/assets'),
       'components': path.resolve(__dirname, './src/dashboard/components'),
       'examples': path.resolve(__dirname, './src/dashboard/examples'),
       'layouts': path.resolve(__dirname, './src/dashboard/layouts'),

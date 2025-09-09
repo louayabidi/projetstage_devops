@@ -26,8 +26,9 @@ import Icon from "@mui/material/Icon";
 import VuiBox from "components/VuiBox";
 import VuiTypography from "components/VuiTypography";
 import VuiButton from "components/VuiButton";
-import linearGradient from "assets/theme/functions/linearGradient";
-import colors from "assets/theme/base/colors";
+import linearGradient from "dashboard-assets/theme/functions/linearGradient";
+
+import colors from "dashboard-assets/theme/base/colors";  
 
 function Bill({ name, company, email, vat, noGutter }) {
   const { gradients } = colors;

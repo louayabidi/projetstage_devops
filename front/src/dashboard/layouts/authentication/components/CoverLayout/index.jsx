@@ -31,7 +31,7 @@ import PageLayout from "examples/LayoutContainers/PageLayout";
 import Footer from "layouts/authentication/components/Footer";
 
 // Vision UI Dashboard React theme functions
-import colors from "assets/theme/base/colors";
+import colors from "dashboard-assets/theme/base/colors";  
 
 // Vision UI Dashboard React theme functions
 import tripleLinearGradient from "assets/theme/functions/tripleLinearGradient";

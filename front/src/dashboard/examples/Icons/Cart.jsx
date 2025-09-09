@@ -20,7 +20,7 @@
 import PropTypes from "prop-types";
 
 // Vision UI Dashboard React base styles
-import colors from "assets/theme/base/colors";
+import colors from "dashboard-assets/theme/base/colors";  
 
 function Cart({ color, size }) {
   return (

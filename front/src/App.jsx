@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import Login from "./components/login";
+import GitHubButton from "react-github-btn";
 import Registration from "./components/registration";
 import Home from "./components/home";
 import Contact from "./components/Contact";

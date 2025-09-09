@@ -18,9 +18,9 @@ import VuiAvatar from "components/VuiAvatar";
 import VuiTypography from "components/VuiTypography";
 
 // Vision UI Dashboard React base styles
-import colors from "assets/theme/base/colors";
-import typography from "assets/theme/base/typography";
-import borders from "assets/theme/base/borders";
+import colors from "dashboard-assets/theme/base/colors";  
+import typography from "dashboard-assets/theme/base/typography";
+import borders from "dashboard-assets/theme/base/borders";
 
 function Table({ columns = [], rows = [] }) {
   const { grey } = colors;

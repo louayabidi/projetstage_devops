@@ -19,12 +19,11 @@ const { doHash, doHashValidation, hmacProcess } = require('../utils/hashing');
 
 exports.signup = async (req, res) => {
   try {
-    const { firstName, lastName, email, password, phoneNumber, role, photo, age, adminInfo } = req.body;
-
-    // Validate required fields
-    if (!firstName || !lastName || !email || !password || !role || !phoneNumber || !age) {
-      return res.status(400).json({ success: false, message: 'Missing required fields' });
+    const { error } = signupSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ success: false, message: error.details[0].message });
     }
+    const { firstName, lastName, email, password, phoneNumber, role, photo, age, adminInfo } = req.body;
 
     // Check for existing user
     const existingUser = await User.findOne({ email });
@@ -85,6 +84,12 @@ exports.signup = async (req, res) => {
 
 exports.signin = async (req, res) => {
   try {
+    // Add validation for injection protection
+    const { error } = signinSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ success: false, message: error.details[0].message });
+    }
+
     const { email, password: rawPassword } = req.body;
     const password = rawPassword.trim();
     const existingUser = await User.findOne({ email }).select('+password');

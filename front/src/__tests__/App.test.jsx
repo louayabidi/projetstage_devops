@@ -2,19 +2,22 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import App from '../App';
 
-describe('App component', () => {
-  it('renders the main heading', () => {
+describe('App routing', () => {
+  it('renders home page at /', () => {
     render(
-      <MemoryRouter>
+      <MemoryRouter initialEntries={['/']}>
         <App />
       </MemoryRouter>
     );
+    expect(screen.getByText(/Discover Amazing/)).toBeInTheDocument();
+  });
 
-    // Match text across multiple lines / elements
-    expect(
-      screen.getByText((content, element) =>
-        content.includes('Discover Amazing') && content.includes('Boat Experiences')
-      )
-    ).toBeInTheDocument();
+  it('renders 404 page on unknown route', () => {
+    render(
+      <MemoryRouter initialEntries={['/unknown']}>
+        <App />
+      </MemoryRouter>
+    );
+    expect(screen.getByText(/Page not found/i)).toBeInTheDocument();
   });
 });

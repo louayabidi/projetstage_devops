@@ -13,7 +13,11 @@ const authRouter = require("./routers/authRouter");
 const boatRouter = require("./routers/boat");
 const bookingRouter = require("./routers/bookingRouter");
 const travelInterestRouter = require("./routers/travelInterest");
+const mongoose = require('mongoose'); // Add for tests
 const app = express();
+
+// Optional DB connection for tests (uncomment if needed, but use memory server in tests)
+// mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/testdb');
 
 // Middleware
 app.use('/Uploads', express.static(path.join(__dirname, 'Uploads'), {
@@ -21,6 +25,7 @@ app.use('/Uploads', express.static(path.join(__dirname, 'Uploads'), {
 }));
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
+app.use(helmet()); // Add for security
 app.use(cors({
   origin: 'http://localhost:5173',
   credentials: true,

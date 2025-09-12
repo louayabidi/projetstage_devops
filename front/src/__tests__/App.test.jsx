@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'; // Ajoutez waitFor
+import { render, screen, waitFor } from '@testing-library/react'; 
 import { MemoryRouter } from 'react-router-dom';
 import App from '../App';
 
@@ -12,7 +12,7 @@ describe('App routing', () => {
     expect(screen.getByText(/Discover Amazing/)).toBeInTheDocument();
   });
 
-  it('renders 404 page on unknown route', async () => { // Ajoutez async
+  it('renders 404 page on unknown route', async () => { 
     render(
       <MemoryRouter initialEntries={['/unknown']}>
         <App />

@@ -42,7 +42,7 @@ function App() {
       <Route path="/boats" element={<Layout><Boats /></Layout>} />
       <Route path="/boats/:id" element={<Layout><BoatDetails /></Layout>} />
       <Route path="/change-password" element={<ChangePassword />} />
-      <Route path="*" element={<Layout><NotFound /></Layout>}
+      <Route path="*" element={<Layout><NotFound /></Layout>} ></Route>
 
 <Route
   path="/find-companions"

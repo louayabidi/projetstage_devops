@@ -19,6 +19,7 @@ import Dashboard from "./dashboard/layouts/dashboard";
 import Tables from "./dashboard/layouts/tables";
 import Billing from "./dashboard/layouts/billing";
 import RTL from "./dashboard/layouts/rtl";
+import NotFound from "./components/NotFound";
 import Profile from "./dashboard/layouts/profile";
 import SignIn from "./dashboard/layouts/authentication/sign-in";
 import SignUp from "./dashboard/layouts/authentication/sign-up";
@@ -41,7 +42,7 @@ function App() {
       <Route path="/boats" element={<Layout><Boats /></Layout>} />
       <Route path="/boats/:id" element={<Layout><BoatDetails /></Layout>} />
       <Route path="/change-password" element={<ChangePassword />} />
-
+      <Route path="*" element={<Layout><NotFound /></Layout>}
 
 <Route
   path="/find-companions"

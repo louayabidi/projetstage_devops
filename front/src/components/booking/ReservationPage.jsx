@@ -31,6 +31,7 @@ const ReservationPage = () => {
     numberOfCabins: 1,
     startDate: '',
     endDate: '',
+    reservationType: 'shared', // New field
   });
 
   // Use watchPosition for real-time location updates
@@ -153,6 +154,44 @@ const ReservationPage = () => {
     setSubmitting(true);
     setError(null);
 
+    // Validate coordinates
+    const isValidCoordinates = (coords) =>
+      Array.isArray(coords) &&
+      coords.length === 2 &&
+      coords[0] !== 0 &&
+      coords[1] !== 0 &&
+      coords[0] >= -180 &&
+      coords[0] <= 180 &&
+      coords[1] >= -90 &&
+      coords[1] <= 90;
+
+    if (
+      !isValidCoordinates(formData.departureLocation.coordinates) ||
+      !isValidCoordinates(formData.destination.coordinates)
+    ) {
+      setError('Please provide valid departure and destination coordinates.');
+      setSubmitting(false);
+      return;
+    }
+
+    if (!formData.startDate || !formData.endDate) {
+      setError('Please provide start and end dates.');
+      setSubmitting(false);
+      return;
+    }
+
+    if (new Date(formData.startDate) >= new Date(formData.endDate)) {
+      setError('End date must be after start date.');
+      setSubmitting(false);
+      return;
+    }
+
+    if (formData.numberOfPersons > boat.boatCapacity) {
+      setError(`Number of persons (${formData.numberOfPersons}) exceeds boat capacity (${boat.boatCapacity}).`);
+      setSubmitting(false);
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
       const response = await axios.post(
@@ -244,7 +283,7 @@ const ReservationPage = () => {
               {success ? (
                 <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative">
                   <strong className="font-bold">Reservation Request Sent!</strong>
-                  <p>Your reservation request has been sent to the boat owner. You will be redirected to your booking page shortly.</p>
+                  <p>Your {formData.reservationType} reservation request has been sent to the boat owner. You will be redirected to your booking page shortly.</p>
                 </div>
               ) : (
                 <form onSubmit={handleSubmit}>
@@ -253,6 +292,27 @@ const ReservationPage = () => {
                       {error}
                     </div>
                   )}
+
+                  <div className="mb-4">
+                    <label className="block text-gray-700 font-medium mb-2">
+                      Reservation Type *
+                    </label>
+                    <select
+                      name="reservationType"
+                      value={formData.reservationType}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="shared">Shared (Join others)</option>
+                      <option value="exclusive">Exclusive (Entire boat)</option>
+                    </select>
+                    <p className="text-gray-500 text-sm mt-1">
+                      {formData.reservationType === 'shared'
+                        ? 'Join other passengers if capacity allows.'
+                        : 'Reserve the entire boat for your group.'}
+                    </p>
+                  </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>

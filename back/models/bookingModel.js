@@ -25,6 +25,12 @@ const bookingSchema = new mongoose.Schema({
     type: { type: String, default: 'Point' },
     coordinates: [Number],
   },
+  reservationType: {
+    type: String,
+    enum: ['exclusive', 'shared'],
+    default: 'shared',
+    required: true,
+  },
 }, { timestamps: true });
 
 bookingSchema.index({ 'departureLocation.coordinates': '2dsphere' });

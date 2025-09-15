@@ -196,13 +196,24 @@ exports.createBooking = async (req, res) => {
       numberOfCabins,
       boatId,
       startDate,
-      endDate
+      endDate,
+      reservationType, // New field
     } = req.body;
 
-    if (!numberOfPersons || !paymentMethod || !destination || !numberOfCabins || !boatId || !startDate || !endDate) {
+    // Validate input
+    if (
+      !numberOfPersons ||
+      !paymentMethod ||
+      !destination ||
+      !numberOfCabins ||
+      !boatId ||
+      !startDate ||
+      !endDate ||
+      !reservationType
+    ) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields'
+        message: 'Missing required fields',
       });
     }
 
@@ -210,26 +221,50 @@ exports.createBooking = async (req, res) => {
     if (!boat) {
       return res.status(404).json({
         success: false,
-        message: 'Boat not found'
+        message: 'Boat not found',
       });
     }
 
-    const existingBooking = await Booking.findOne({
+    // Validate numberOfPersons against boat capacity
+    if (numberOfPersons > boat.boatCapacity) {
+      return res.status(400).json({
+        success: false,
+        message: `Number of persons (${numberOfPersons}) exceeds boat capacity (${boat.boatCapacity})`,
+      });
+    }
+
+    // Check availability based on reservation type
+    const existingBookings = await Booking.find({
       boat: boatId,
       status: { $in: ['pending', 'offered', 'confirmed'] },
       $or: [
-        { 
+        {
           startDate: { $lt: new Date(endDate) },
-          endDate: { $gt: new Date(startDate) }
-        }
-      ]
+          endDate: { $gt: new Date(startDate) },
+        },
+      ],
     });
 
-    if (existingBooking) {
-      return res.status(400).json({
-        success: false,
-        message: 'Boat is not available for the selected dates'
-      });
+    if (reservationType === 'exclusive') {
+      // For exclusive bookings, no overlapping bookings are allowed
+      if (existingBookings.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Boat is not available for the selected dates (exclusive reservation)',
+        });
+      }
+    } else if (reservationType === 'shared') {
+      // For shared bookings, check total number of persons
+      const totalPersons = existingBookings.reduce(
+        (sum, booking) => sum + booking.numberOfPersons,
+        0
+      );
+      if (totalPersons + numberOfPersons > boat.boatCapacity) {
+        return res.status(400).json({
+          success: false,
+          message: `Boat capacity exceeded. Current: ${totalPersons}, Requested: ${numberOfPersons}, Capacity: ${boat.boatCapacity}`,
+        });
+      }
     }
 
     const booking = new Booking({
@@ -242,21 +277,22 @@ exports.createBooking = async (req, res) => {
       paymentMethod,
       departureLocation: {
         type: 'Point',
-        coordinates: departureLocation.coordinates
+        coordinates: departureLocation.coordinates,
       },
       destination: {
         type: 'Point',
-        coordinates: destination.coordinates
+        coordinates: destination.coordinates,
       },
       numberOfCabins,
       startDate,
-      endDate
+      endDate,
+      reservationType,
     });
 
     await booking.save();
 
     await User.findByIdAndUpdate(passengerId, {
-      $push: { bookingRequests: booking._id }
+      $push: { bookingRequests: booking._id },
     });
 
     const passenger = await User.findById(passengerId);
@@ -265,8 +301,8 @@ exports.createBooking = async (req, res) => {
       sender: passengerId,
       booking: booking._id,
       type: 'new_booking',
-      message: `New booking request from ${passenger.firstName} ${passenger.lastName}`,
-      isRead: false
+      message: `New ${reservationType} booking request from ${passenger.firstName} ${passenger.lastName}`,
+      isRead: false,
     });
 
     await notification.save();
@@ -274,14 +310,14 @@ exports.createBooking = async (req, res) => {
     res.status(201).json({
       success: true,
       booking,
-      message: 'Booking request sent successfully'
+      message: 'Booking request sent successfully',
     });
   } catch (error) {
     console.error('Create booking error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error',
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -361,46 +397,57 @@ exports.acceptOffer = async (req, res) => {
     const passengerId = req.user._id;
     const { bookingId } = req.params;
 
-    const booking = await Booking.findById(bookingId);
+    const booking = await Booking.findById(bookingId).populate('boat');
     if (!booking) {
       return res.status(404).json({
         success: false,
-        message: 'Booking not found'
+        message: 'Booking not found',
       });
     }
 
     if (booking.passenger.toString() !== passengerId.toString()) {
       return res.status(403).json({
         success: false,
-        message: 'Unauthorized'
+        message: 'Unauthorized',
       });
     }
 
     if (booking.status !== 'offered') {
       return res.status(400).json({
         success: false,
-        message: 'No offer to accept'
+        message: 'No offer to accept',
       });
     }
 
     // Re-check boat availability for the selected dates
-    const existingBooking = await Booking.findOne({
+    const existingBookings = await Booking.find({
       boat: booking.boat,
       status: 'confirmed',
       _id: { $ne: bookingId }, // Exclude the current booking
       $or: [
-        { 
+        {
           startDate: { $lt: new Date(booking.endDate) },
-          endDate: { $gt: new Date(booking.startDate) }
-        }
-      ]
+          endDate: { $gt: new Date(booking.startDate) },
+        },
+      ],
     });
 
-    if (existingBooking) {
+    if (booking.reservationType === 'exclusive' && existingBookings.length > 0) {
       return res.status(400).json({
         success: false,
-        message: 'Boat is no longer available for the selected dates'
+        message: 'Boat is no longer available for the selected dates (exclusive reservation)',
       });
+    } else if (booking.reservationType === 'shared') {
+      const totalPersons = existingBookings.reduce(
+        (sum, b) => sum + b.numberOfPersons,
+        0
+      );
+      if (totalPersons + booking.numberOfPersons > booking.boat.boatCapacity) {
+        return res.status(400).json({
+          success: false,
+          message: `Boat capacity exceeded. Current: ${totalPersons}, Requested: ${booking.numberOfPersons}, Capacity: ${booking.boat.boatCapacity}`,
+        });
+      }
     }
 
     booking.status = 'confirmed';
@@ -408,12 +455,12 @@ exports.acceptOffer = async (req, res) => {
 
     await User.findByIdAndUpdate(passengerId, {
       $pull: { bookingRequests: booking._id },
-      $push: { confirmedBookings: booking._id }
+      $push: { confirmedBookings: booking._id },
     });
 
     await User.findByIdAndUpdate(booking.boatOwner, {
       $pull: { bookingOffers: booking._id },
-      $push: { confirmedBookings: booking._id }
+      $push: { confirmedBookings: booking._id },
     });
 
     const passenger = await User.findById(passengerId);
@@ -422,8 +469,8 @@ exports.acceptOffer = async (req, res) => {
       sender: passengerId,
       booking: booking._id,
       type: 'booking_confirmed',
-      message: `${passenger.firstName} ${passenger.lastName} accepted your offer and confirmed the booking`,
-      isRead: false
+      message: `${passenger.firstName} ${passenger.lastName} accepted your offer and confirmed the ${booking.reservationType} booking`,
+      isRead: false,
     });
 
     await notification.save();
@@ -431,14 +478,14 @@ exports.acceptOffer = async (req, res) => {
     res.status(200).json({
       success: true,
       booking,
-      message: 'Offer accepted and booking confirmed'
+      message: 'Offer accepted and booking confirmed',
     });
   } catch (error) {
     console.error('Accept offer error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error',
-      error: error.message
+      error: error.message,
     });
   }
 };

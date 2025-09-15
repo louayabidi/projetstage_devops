@@ -79,9 +79,37 @@ const Header = () => {
               <FaBell />
               {unreadCount > 0 && <Badge bg="danger" pill style={{ position: 'absolute', top: '-5px', right: '-10px' }}>{unreadCount}</Badge>}
             </Link>
-            <Link to='/profile' style={{color: "#fff", textDecoration: "none"}}>
-              {user?.firstName || 'Profile'}
-            </Link>
+           
+
+           <Link to='/profile' style={{ color: "#fff", textDecoration: "none" }}>
+  {user?.photo ? (
+    <img
+      src={`http://localhost:3000${user.photo}`}   // prepend backend URL
+      alt="Profile"
+      style={{
+        width: "32px",
+        height: "32px",
+        borderRadius: "50%",
+        objectFit: "cover",
+        border: "2px solid #fff",
+      }}
+      onError={(e) => { e.target.src = "/default-avatar.jpg"; }}
+    />
+  ) : (
+    <img
+      src="/default-avatar.jpg"
+      alt="Default Profile"
+      style={{
+        width: "32px",
+        height: "32px",
+        borderRadius: "50%",
+        objectFit: "cover",
+        border: "2px solid #fff",
+      }}
+    />
+  )}
+</Link>
+
 
 
             <Link to='/find-companions' style={{color: "#fff", textDecoration: "none"}}> Find friends</Link>

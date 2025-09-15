@@ -67,26 +67,27 @@ const EditProfilePage = () => {
           return;
         }
 
-        const response = await axios.get('/api/users/me', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+       const response = await axios.get('/api/users/me', {
+  headers: {
+    Authorization: `Bearer ${token}`,
+  },
+});
 
-        if (response.data.success) {
-          const userData = response.data.user;
+if (response.data.success) {
+  const updatedUser = response.data.user;
 
-          setUser(userData);
+  // update React state
+  setUser((prev) => ({ ...prev, ...updatedUser }));
 
-          // prepend backend URL to the photo path
-          if (userData.photo) {
-            setPreviewImage(`${API_URL}${userData.photo}`);
-          } else {
-            setPreviewImage('/default-avatar.jpg');
-          }
+  // update preview
+  setPreviewImage(updatedUser.photo ? `${API_URL}${updatedUser.photo}` : '/default-avatar.jpg');
 
-          console.log('Fetched user photo:', userData.photo);
-        }
+  // ✅ also update localStorage so Header sees the new photo
+  localStorage.setItem("user", JSON.stringify(updatedUser));
+
+  console.log('Fetched user photo:', updatedUser.photo);
+}
+
       } catch (err) {
         console.error('Profile fetch error details:', err.response?.data);
         setError(err.response?.data?.message || 'Error fetching profile');

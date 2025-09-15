@@ -14,6 +14,7 @@ import createCache from "@emotion/cache";
 import { useVisionUIController, setMiniSidenav, setOpenConfigurator } from "./context";
 import routes from "./routes";
 
+
 export default function DashboardLayout() {
   const [controller, dispatch] = useVisionUIController();
   const { miniSidenav, direction, layout, openConfigurator, sidenavColor } = controller;

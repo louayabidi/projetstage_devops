@@ -10,13 +10,14 @@ import { FaEye, FaEyeSlash } from "react-icons/fa";
 import backgroundImage from "../assets/backgroundlogin.jpg";
 import { EarthCanvas } from "./canvas";
 import { jwtDecode } from "jwt-decode";
+import { useVisionUIController, setUser } from "../dashboard/context"; // Import context
 
 const Login = () => {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
-  const [forgotPasswordStep, setForgotPasswordStep] = useState(0); // 0: login, 1: email input, 2: code + new password
+  const [forgotPasswordStep, setForgotPasswordStep] = useState(0);
   const [forgotPasswordData, setForgotPasswordData] = useState({
     email: "",
     code: "",
@@ -29,6 +30,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const navigate = useNavigate();
+  const [, dispatch] = useVisionUIController(); // Access dispatch from context
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -44,18 +46,17 @@ const Login = () => {
     setError(null);
     try {
       console.log("Sending login request with:", formData);
-      const response = await axios.post("/api/auth/signin", formData, { withCredentials: true });
+      const response = await axios.post("http://localhost:3000/api/auth/signin", formData, { withCredentials: true });
+      localStorage.setItem("token", response.data.token);
       console.log("Login successful - Response:", response.data);
 
       const token = response.data.token;
-      localStorage.setItem("token", token);
-
       const tokenPayload = jwtDecode(token);
       console.log("Token payload:", tokenPayload);
       localStorage.setItem("userId", tokenPayload._id);
-      const userRole = tokenPayload.role;
+      setUser(dispatch, tokenPayload); // Update context with decoded user data
 
-      if (userRole === "admin") {
+      if (tokenPayload.role === "admin") {
         navigate("/dashboard/tables");
       } else {
         navigate("/home");

@@ -19,6 +19,8 @@ import {
 } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 
+const API_URL = "http://localhost:3000"; // backend base url
+
 const EditProfilePage = () => {
   const [user, setUser] = useState({
     firstName: '',
@@ -57,21 +59,12 @@ const EditProfilePage = () => {
     const fetchUserProfile = async () => {
       try {
         const token = localStorage.getItem('token');
-        console.log('Token from localStorage:', token); // DEBUG
+        console.log('Token from localStorage:', token);
 
         if (!token) {
-          console.log('No token found, redirecting to login'); // DEBUG
-          navigate('/login');
+          console.log('No token found, redirecting to login');
+          navigate('/profile');
           return;
-        }
-
-        // DEBUG: Check if token is valid format
-        try {
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          console.log('Token payload:', payload);
-          console.log('Token expiration:', new Date(payload.exp * 1000));
-        } catch (e) {
-          console.log('Token format invalid:', e);
         }
 
         const response = await axios.get('/api/users/me', {
@@ -82,19 +75,25 @@ const EditProfilePage = () => {
 
         if (response.data.success) {
           const userData = response.data.user;
-          if (userData.photo && !userData.photo.startsWith('http')) {
-            userData.photo = `http://localhost:3000${userData.photo}`;
-          }
+
           setUser(userData);
-          setPreviewImage(userData.photo || '/default-avatar.jpg');
+
+          // prepend backend URL to the photo path
+          if (userData.photo) {
+            setPreviewImage(`${API_URL}${userData.photo}`);
+          } else {
+            setPreviewImage('/default-avatar.jpg');
+          }
+
+          console.log('Fetched user photo:', userData.photo);
         }
       } catch (err) {
-        console.error('Profile fetch error details:', err.response?.data); // DEBUG
+        console.error('Profile fetch error details:', err.response?.data);
         setError(err.response?.data?.message || 'Error fetching profile');
         setSnackbarOpen(true);
 
         if (err.response?.status === 401) {
-          console.log('401 error - removing token and redirecting'); // DEBUG
+          console.log('401 error - removing token and redirecting');
           localStorage.removeItem('token');
           navigate('/login');
         }
@@ -148,18 +147,29 @@ const EditProfilePage = () => {
       const response = await axios.patch('/api/users/me', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
       });
 
       if (response.data.success) {
+        const updatedUser = response.data.user;
+        setUser((prev) => ({
+          ...prev,
+          ...updatedUser,
+        }));
+
+        // prepend backend URL
+        setPreviewImage(updatedUser.photo ? `${API_URL}${updatedUser.photo}` : '/default-avatar.jpg');
+
         setSuccess('Profile updated successfully!');
         setSnackbarOpen(true);
+
         setTimeout(() => {
           navigate('/profile');
-        }, 1500);
+        }, 1000);
       }
     } catch (err) {
-      console.error('Update error:', err);
+      console.error('Update error:', err.response?.data || err.message);
       setError(err.response?.data?.message || 'Error updating profile');
       setSnackbarOpen(true);
     } finally {
@@ -190,7 +200,7 @@ const EditProfilePage = () => {
       }
 
       const response = await axios.patch(
-       "http://localhost:3000/api/auth/change-password",
+        `${API_URL}/api/auth/change-password`,
         {
           oldPassword: passwordData.oldPassword,
           newPassword: passwordData.newPassword,
@@ -240,8 +250,10 @@ const EditProfilePage = () => {
             <Avatar
               src={previewImage || '/default-avatar.jpg'}
               sx={{ width: 120, height: 120, mb: 2 }}
+              key={previewImage}
               onError={(e) => {
                 e.target.src = '/default-avatar.jpg';
+                console.log('Image load error, fallback to default');
               }}
             />
             <Button variant="contained" component="label">

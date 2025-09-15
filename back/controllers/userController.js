@@ -50,24 +50,29 @@ exports.getAllBoatOwners = async (req, res) => {
 
 exports.updateCurrentUser = async (req, res) => {
   try {
-    const userId = req.user._id; // Use _id
+    const userId = req.user._id;
     const updates = req.body;
     const file = req.file;
 
     console.log('Updating user:', userId);
+    console.log('Received file:', file);
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found'
+        message: 'User not found',
       });
     }
 
     console.log('Current user photo:', user.photo);
-    if (file) {
-      user.photo = `/Uploads/${file.filename}`;
+       if (file) {
+if (file) {
+  user.photo = `/uploads/profiles/${file.filename}`;
+  console.log('New photo path:', user.photo);
+}
       console.log('New photo path:', user.photo);
-    }
+         }
+
 
     if (updates.firstName) user.firstName = updates.firstName;
     if (updates.lastName) user.lastName = updates.lastName;
@@ -77,18 +82,20 @@ exports.updateCurrentUser = async (req, res) => {
 
     const userResponse = user.toObject();
     if (user.photo) {
-      userResponse.photo = `${req.protocol}://${req.get('host')}${user.photo}`;
-    }
+  userResponse.photo = `${req.protocol}://${req.get('host')}${user.photo.startsWith('/') ? user.photo : '/' + user.photo}`;
+}
+
 
     res.status(200).json({
       success: true,
-      user: userResponse
+      user: userResponse,
     });
   } catch (error) {
     console.error('Update error:', error);
     res.status(500).json({
       success: false,
-      message: 'Error updating profile'
+      message: 'Error updating profile',
+      error: error.message,
     });
   }
 };

@@ -19,11 +19,12 @@ const { doHash, doHashValidation, hmacProcess } = require('../utils/hashing');
 
 exports.signup = async (req, res) => {
   try {
-    const { error } = signupSchema.validate(req.body);
-    if (error) {
-      return res.status(400).json({ success: false, message: error.details[0].message });
-    }
     const { firstName, lastName, email, password, phoneNumber, role, photo, age, adminInfo } = req.body;
+
+    // Validate required fields
+    if (!firstName || !lastName || !email || !password || !role || !phoneNumber || !age) {
+      return res.status(400).json({ success: false, message: 'Missing required fields' });
+    }
 
     // Check for existing user
     const existingUser = await User.findOne({ email });
@@ -63,6 +64,16 @@ exports.signup = async (req, res) => {
     // Remove password from response
     savedUser.password = undefined;
 
+
+     // Log SIGNUP action
+    const activityLog = new ActivityLog({
+       userId: savedUser._id,
+       //userId: savedUser._id, 
+      action: 'SIGNUP',
+      ipAddress: req.ip || req.connection.remoteAddress,
+      userAgent: req.get('User-Agent') || 'Unknown',
+    });
+    await activityLog.save();
     // Generate JWT
     const token = jwt.sign(
       { _id: savedUser._id, email: savedUser.email, role: savedUser.role },
@@ -104,6 +115,18 @@ exports.signin = async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({ success: false, message: 'Incorrect password' });
     }
+
+
+// Log LOGIN action
+    const activityLog = new ActivityLog({
+    userId: existingUser._id, 
+      action: 'LOGIN',
+      ipAddress: req.ip || req.connection.remoteAddress,
+      userAgent: req.get('User-Agent') || 'Unknown',
+    });
+    await activityLog.save();
+
+
     existingUser.password = undefined;
     const token = jwt.sign(
       { _id: existingUser._id, email: existingUser.email, role: existingUser.role },
@@ -414,6 +437,16 @@ exports.verifyBoatOwner = async (req, res) => {
     }
 
     await user.save();
+
+    // Log VERIFY_USER action
+    const activityLog = new ActivityLog({
+      userId: req.user._id,
+      action: 'VERIFY_USER',
+      ipAddress: req.ip || req.connection.remoteAddress,
+      userAgent: req.get('User-Agent') || 'Unknown',
+    });
+    await activityLog.save();
+
     console.log('User updated:', { verified: user.verified, rejected: user.rejected });
 
     try {
@@ -480,6 +513,16 @@ exports.rejectBoatOwner = async (req, res) => {
     }
 
     await user.save();
+
+    // Log REJECT_USER action
+    const activityLog = new ActivityLog({
+      userId: req.user._id,
+      action: 'REJECT_USER',
+      ipAddress: req.ip || req.connection.remoteAddress,
+      userAgent: req.get('User-Agent') || 'Unknown',
+    });
+    await activityLog.save();
+
     console.log('User updated:', { verified: user.verified, rejected: user.rejected, rejectionReason });
 
     try {
@@ -643,11 +686,68 @@ exports.getAllUsers = async (req, res) => {
 
 exports.getActivityLogs = async (req, res) => {
   try {
-    const filter = req.user ? { userId: req.user._id } : {};
-    const logs = await ActivityLog.find(filter).sort({ createdAt: -1 });
-    res.status(200).json({ success: true, logs });
+
+
+   console.log("➡️ getActivityLogs called");
+    console.log("req.user:", req.user);
+
+    // Validate req.user
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({ success: false, message: 'Unauthorized: No user provided' });
+    }
+
+    const userId = req.user._id;
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ success: false, message: 'Invalid user ID' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    let logs;
+    if (user.role === 'admin') {
+      logs = await ActivityLog.find()
+        .populate({
+          path: 'userId',
+          select: 'email firstName lastName',
+          match: { _id: { $exists: true } }, // Ensure populated user exists
+        })
+        .populate({
+          path: 'bookingId',
+          select: 'reservationType',
+          match: { reservationType: { $exists: true } }, // Ensure booking has reservationType
+        })
+        .sort({ createdAt: -1 });
+    } else {
+      logs = await ActivityLog.find({ userId })
+        .populate({
+          path: 'userId',
+          select: 'email firstName lastName',
+          match: { _id: { $exists: true } },
+        })
+        .populate({
+          path: 'bookingId',
+          select: 'reservationType',
+          match: { reservationType: { $exists: true } },
+        })
+        .sort({ createdAt: -1 });
+    }
+
+    // Filter out logs with null populated fields
+    logs = logs.filter(log => log.userId !== null);
+
+    res.status(200).json({
+      success: true,
+      logs,
+    });
   } catch (error) {
-    console.error('Error retrieving logs:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error('Get activity logs error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message,
+    });
   }
 };

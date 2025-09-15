@@ -77,7 +77,7 @@ console.log("Port:", process.env.PORT);
 console.log("Session Secret:", process.env.SESSION_SECRET);
 
 // Middleware
-app.use('/Uploads', express.static(path.join(__dirname, 'Uploads'), {
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
   setHeaders: (res) => {
     res.set('Cache-Control', 'public, max-age=31536000');
   }

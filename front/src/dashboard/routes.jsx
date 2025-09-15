@@ -47,7 +47,7 @@ import Profile from "layouts/profile";
 import SignIn from "layouts/authentication/sign-in";
 import SignUp from "layouts/authentication/sign-up";
 import BoatOwnerDetail from "./layouts/tables/data/BoatOwnerDetail";
-
+import ActivityLogsPage from "layouts/activity-logs";
 
 // Vision UI Dashboard React icons
 import { IoRocketSharp } from "react-icons/io5";
@@ -57,6 +57,7 @@ import { IoBuild } from "react-icons/io5";
 import { BsCreditCardFill } from "react-icons/bs";
 import { IoStatsChart } from "react-icons/io5";
 import { IoHome } from "react-icons/io5";
+import { MdHistory } from "react-icons/md";
 
 const routes = [
   {
@@ -77,6 +78,16 @@ const routes = [
     component: Tables,
     noCollapse: true,
   },
+  {
+  type: "collapse",
+  name: "Activity Logs",
+  key: "activity-logs",
+  route: "/dashboard/activity-logs",
+   icon: <MdHistory size="15px" color="inherit" />, // ✅ now it works
+  component: ActivityLogsPage,
+  noCollapse: true,
+},
+
 
   {
     type: "collapse",

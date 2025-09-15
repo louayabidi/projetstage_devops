@@ -20,7 +20,9 @@ const app = express();
 // mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/testdb');
 
 // Middleware
-app.use('/Uploads', express.static(path.join(__dirname, 'Uploads'), {
+app.use('/uploads/profiles', express.static(path.join(__dirname, 'uploads/profiles')));
+
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
   setHeaders: (res) => res.set('Cache-Control', 'public, max-age=31536000')
 }));
 app.use(bodyParser.json({ limit: '50mb' }));

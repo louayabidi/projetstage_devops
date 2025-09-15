@@ -1,42 +1,52 @@
-/*!
-
-=========================================================
-* Vision UI Free React - v1.0.0
-=========================================================
-
-* Product Page: https://www.creative-tim.com/product/vision-ui-free-react
-* Copyright 2021 Creative Tim (https://www.creative-tim.com/)
-* Licensed under MIT (https://github.com/creativetimofficial/vision-ui-free-react/blob/master LICENSE.md)
-
-* Design and Coded by Simmmple & Creative Tim
-
-=========================================================
-
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-*/
-
-// @mui material components
+// src/dashboard/layouts/billing/index.jsx
+import React, { useState, useEffect } from "react";
+import { useVisionUIController } from "context"; // Adjust import path
 import Grid from "@mui/material/Grid";
-
-// Vision UI Dashboard React components
 import VuiBox from "components/VuiBox";
-
-// Vision UI Dashboard React components
 import MasterCard from "examples/Cards/MasterCard";
-// Vision UI Dashboard React example components
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 import Footer from "examples/Footer";
-
-// Billing page components
 import PaymentMethod from "layouts/billing/components/PaymentMethod";
 import Invoices from "layouts/billing/components/Invoices";
 import BillingInformation from "layouts/billing/components/BillingInformation";
 import Transactions from "layouts/billing/components/Transactions";
 import CreditBalance from "./components/CreditBalance";
+import ActivityLogs from "./components/ActivityLogs";
+import axios from "axios";
 
 function Billing() {
+  const [controller, dispatch] = useVisionUIController();
+  const { user } = controller;
+  const [activityLogs, setActivityLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    console.log("User object:", user);
+    const fetchActivityLogs = async () => {
+      if (user?.role === "admin") {
+        try {
+          const response = await axios.get("http://localhost:3000/api/auth/activity-logs", {
+            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+          });
+          if (response.data.success) {
+            setActivityLogs(response.data.logs);
+          }
+        } catch (err) {
+          setError("Failed to fetch activity logs.");
+          console.error(err);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setLoading(false);
+      }
+    };
+
+    fetchActivityLogs();
+  }, [user]);
+
   return (
     <DashboardLayout>
       <DashboardNavbar />
@@ -67,7 +77,17 @@ function Billing() {
               <BillingInformation />
             </Grid>
             <Grid item xs={12} md={5}>
-              <Transactions />
+              {user?.role === "admin" ? (
+                loading ? (
+                  <VuiBox>Loading activity logs...</VuiBox>
+                ) : error ? (
+                  <VuiBox color="error">{error}</VuiBox>
+                ) : (
+                  <ActivityLogs logs={activityLogs} />
+                )
+              ) : (
+                <Transactions />
+              )}
             </Grid>
           </Grid>
         </VuiBox>

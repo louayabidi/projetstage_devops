@@ -29,6 +29,7 @@ import OwnerCalendar from './components/booking/OwnerCalendar';
 import ChangePassword from "./components/User/ChangePassword";
 import FindCompanions from './components/travelInterest/FindCompanions';
 import SubmitReview from './components/booking/SubmitReview';
+import ActivityLogsPage from "./dashboard/layouts/activity-logs"; 
 
 
 function App() {
@@ -153,6 +154,7 @@ function App() {
         <Route path="authentication/sign-in" element={<SignIn />} />
         <Route path="authentication/sign-up" element={<SignUp />} />
         <Route path="admin/users/:id" element={<BoatOwnerDetail />} />
+        <Route path="activity-logs" element={<ActivityLogsPage />} />
       </Route>
 
       {/* Redirects */}

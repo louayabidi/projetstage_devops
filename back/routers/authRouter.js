@@ -6,7 +6,7 @@ const axios = require('axios');
 const passport = require('../middlewares/passport');
 require('dotenv').config(); // Load environment variables from .env file
 const ocrController = require('../controllers/ocrController');
-
+const mongoose = require('mongoose');
 
 const User=require('../models/usersModel')
 const bcrypt = require("bcryptjs");
@@ -29,10 +29,9 @@ router.get('/google/callback',
   }
 );
 
-router.post("/signout", identifier, authController.signout);
 
 
-
+ 
 router.get('/test-hash-length/:email', async (req, res) => {
   try {
     const user = await User.findOne({ email: req.params.email }).select('+password');
@@ -137,7 +136,32 @@ router.patch('/send-forgot-password-code', authController.sendForgotPasswordCode
 router.patch('/verify-forgot-password-code', authController.verifyForgotPasswordCode);
 
 
-router.get('/activity-logs', authController.getActivityLogs )
+
+router.get(
+  "/user",
+  passport.authenticate("jwt", { session: false }),
+  async (req, res) => {
+    try {
+      console.log("➡️ /api/auth/user endpoint called, req.user:", req.user);
+      const userId = req.user._id;
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+        return res.status(400).json({ success: false, message: "Invalid user ID" });
+      }
+
+      const user = await User.findById(userId).select("-password -verificationCode -forgotPasswordCode");
+      if (!user) {
+        return res.status(404).json({ success: false, message: "User not found" });
+      }
+
+      res.status(200).json({ success: true, user });
+    } catch (error) {
+      console.error("Error in /api/auth/user:", error);
+      res.status(500).json({ success: false, message: "Server error", error: error.message });
+    }
+  }
+);
+
+router.get('/activity-logs', identifier, authController.getActivityLogs )
 // Route pour démarrer l'authentification LinkedIn
 
 // Route pour démarrer l'authentification LinkedIn

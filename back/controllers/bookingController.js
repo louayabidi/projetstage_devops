@@ -6,7 +6,7 @@ const Boat = require('../models/boat');
 const User = require('../models/usersModel');
 const Message = require('../models/messageModel');
 const Notification = require('../models/notificationModel');
-
+const ActivityLog = require('../models/activityLog');
 
 
 
@@ -73,6 +73,17 @@ exports.submitReview = async (req, res) => {
     boatOwner.averageRating = boatOwner.reviews.length ? totalRating / boatOwner.reviews.length : 0;
 
     await boatOwner.save();
+
+
+// Log SUBMIT_REVIEW action
+    const activityLog = new ActivityLog({
+      userId: passengerId,
+      action: 'SUBMIT_REVIEW',
+      ipAddress: req.ip || req.connection.remoteAddress,
+      userAgent: req.get('User-Agent') || 'Unknown',
+      bookingId: booking._id,
+    });
+    await activityLog.save();
 
     // Create a notification for the boat owner
     const passenger = await User.findById(passengerId);
@@ -295,6 +306,16 @@ exports.createBooking = async (req, res) => {
       $push: { bookingRequests: booking._id },
     });
 
+    // Log CREATE_BOOKING action
+    const activityLog = new ActivityLog({
+      userId: passengerId,
+      action: 'CREATE_BOOKING',
+      ipAddress: req.ip || req.connection.remoteAddress,
+      userAgent: req.get('User-Agent') || 'Unknown',
+      bookingId: booking._id,
+    });
+    await activityLog.save();
+
     const passenger = await User.findById(passengerId);
     const notification = new Notification({
       recipient: boat.owner,
@@ -372,6 +393,17 @@ exports.makeOffer = async (req, res) => {
       offerMessage: message || '',
     });
     await booking.save({ validateModifiedOnly: true });
+
+
+    // Log MAKE_OFFER action
+    const activityLog = new ActivityLog({
+      userId: ownerId,
+      action: 'MAKE_OFFER',
+      ipAddress: req.ip || req.connection.remoteAddress,
+      userAgent: req.get('User-Agent') || 'Unknown',
+      bookingId: booking._id,
+    });
+    await activityLog.save();
 
     const owner = await User.findById(ownerId);
     const notification = new Notification({
@@ -463,6 +495,17 @@ exports.acceptOffer = async (req, res) => {
       $push: { confirmedBookings: booking._id },
     });
 
+
+    // Log ACCEPT_BOOKING action
+    const activityLog = new ActivityLog({
+      userId: booking.boatOwner,
+      action: 'ACCEPT_BOOKING',
+      ipAddress: req.ip || req.connection.remoteAddress,
+      userAgent: req.get('User-Agent') || 'Unknown',
+      bookingId: booking._id,
+    });
+    await activityLog.save();
+    
     const passenger = await User.findById(passengerId);
     const notification = new Notification({
       recipient: booking.boatOwner,
@@ -528,6 +571,16 @@ exports.rejectOffer = async (req, res) => {
     await User.findByIdAndUpdate(booking.boatOwner, {
       $pull: { bookingOffers: booking._id }
     });
+
+    // Log REJECT_BOOKING action
+    const activityLog = new ActivityLog({
+      userId: passengerId,
+      action: 'REJECT_BOOKING',
+      ipAddress: req.ip || req.connection.remoteAddress,
+      userAgent: req.get('User-Agent') || 'Unknown',
+      bookingId: booking._id,
+    });
+    await activityLog.save();
 
     const passenger = await User.findById(passengerId);
     const notification = new Notification({
@@ -679,6 +732,16 @@ exports.updatePassengerLocation = async (req, res) => {
 
     booking.currentLocation = currentLocation;
     await booking.save();
+
+    // Log UPDATE_LOCATION action
+    const activityLog = new ActivityLog({
+      userId: passengerId,
+      action: 'UPDATE_LOCATION',
+      ipAddress: req.ip || req.connection.remoteAddress,
+      userAgent: req.get('User-Agent') || 'Unknown',
+      bookingId: booking._id,
+    });
+    await activityLog.save();
 
     res.status(200).json({ success: true, message: 'Location updated successfully', booking });
   } catch (error) {

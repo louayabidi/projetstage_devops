@@ -7,9 +7,9 @@ exports.signupSchema = Joi.object({
   email: Joi.string().email().required(),
   password: Joi.string().required(),
   phoneNumber: Joi.string().required(),
-  photo: Joi.string().allow(''),
+  photo: Joi.string().allow(''), // Optional, can be empty string
   role: Joi.string().valid('passenger', 'boat_owner', 'admin').required(),
- boatInfo: Joi.when('role', {
+  boatInfo: Joi.when('role', {
     is: 'boat_owner',
     then: Joi.object({
       boatLicense: Joi.string().required(),
@@ -22,10 +22,10 @@ exports.signupSchema = Joi.object({
     is: 'admin',
     then: Joi.object({
       adminId: Joi.string().required(),
-      department: Joi.string().required()
+      department: Joi.string().required(),
     }).required(),
-    otherwise: Joi.object().optional()
-  })
+    otherwise: Joi.object().optional(),
+  }),
 });
 
 

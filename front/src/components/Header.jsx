@@ -82,6 +82,12 @@ const Header = () => {
             <Link to='/profile' style={{color: "#fff", textDecoration: "none"}}>
               {user?.firstName || 'Profile'}
             </Link>
+
+
+            <Link to='/find-companions' style={{color: "#fff", textDecoration: "none"}}> Find friends</Link>
+              
+            
+
             <button 
               onClick={handleLogout}
               style={{

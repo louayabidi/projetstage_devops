@@ -1,14 +1,33 @@
-
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Form, Button, Alert, Spinner } from 'react-bootstrap';
-import { FaUsers, FaChild, FaCalendar, FaMapMarkerAlt, FaComment } from 'react-icons/fa';
+import {
+  Container,
+  Typography,
+  TextField,
+  Button,
+  Box,
+  Chip,
+  Stack,
+  InputAdornment,
+  CircularProgress,
+  Paper,
+  FormControlLabel,
+  Checkbox,
+  Alert,
+} from '@mui/material';
+import {
+  FaUsers,
+  FaChild,
+  FaCalendar,
+  FaMapMarkerAlt,
+  FaComment,
+} from 'react-icons/fa';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import MapComponent from '../Map/MapComponent';
 
 // Configure Axios with base URL
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:3000',
+  baseURL: 'http://localhost:3000',
 });
 
 const FindCompanions = () => {
@@ -26,8 +45,8 @@ const FindCompanions = () => {
     },
     startDate: '',
     endDate: '',
-    interests: '',
-    message: ''
+    interests: [], // Changed to array
+    message: '',
   });
   const [userLocation, setUserLocation] = useState([0, 0]); // [lng, lat]
   const [destinationLocation, setDestinationLocation] = useState([0, 0]); // [lng, lat]
@@ -37,10 +56,11 @@ const FindCompanions = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [interestInput, setInterestInput] = useState(''); // For chip input
 
   // Log baseURL for debugging
- const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3000';
-console.log('Axios baseURL:', apiUrl); 
+  const apiUrl = 'http://localhost:3000';
+  console.log('Axios baseURL:', apiUrl);
 
   // Check if search button should be enabled
   const isSearchEnabled = () => {
@@ -79,7 +99,9 @@ console.log('Axios baseURL:', apiUrl);
           }));
         },
         (err) => {
-          setError('Failed to get current location. Please select a departure location on the map.');
+          setError(
+            'Failed to get current location. Please select a departure location on the map.'
+          );
           console.error('Geolocation error:', err);
         },
         { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
@@ -163,6 +185,26 @@ console.log('Axios baseURL:', apiUrl);
     setDestinationLocation(newCoordinates);
   };
 
+  const handleInterestAdd = () => {
+    if (
+      interestInput.trim() &&
+      !formData.interests.includes(interestInput.trim())
+    ) {
+      setFormData((prev) => ({
+        ...prev,
+        interests: [...prev.interests, interestInput.trim()],
+      }));
+    }
+    setInterestInput('');
+  };
+
+  const handleInterestDelete = (interestToDelete) => {
+    setFormData((prev) => ({
+      ...prev,
+      interests: prev.interests.filter((i) => i !== interestToDelete),
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     // Validate required fields
@@ -202,7 +244,7 @@ console.log('Axios baseURL:', apiUrl);
           destination: formData.destination,
           startDate: formData.startDate,
           endDate: formData.endDate,
-          interests: formData.interests.split(',').map((i) => i.trim()).filter(i => i),
+          interests: formData.interests, // Send as array
           message: formData.message,
         },
         {
@@ -216,7 +258,10 @@ console.log('Axios baseURL:', apiUrl);
         fetchMyInterests();
       }, 2000);
     } catch (err) {
-      setError(err.response?.data?.message || 'Error posting travel interest');
+      setError(
+        err.response?.data?.message ||
+          'Error posting travel interest. Please check your network connection.'
+      );
       console.error('Post travel interest error:', err.response?.data || err.message);
     } finally {
       setSubmitting(false);
@@ -240,7 +285,9 @@ console.log('Axios baseURL:', apiUrl);
       !formData.startDate ||
       !formData.endDate
     ) {
-      setError('Please fill in all required fields (locations and dates) to search for companions.');
+      setError(
+        'Please fill in all required fields (locations and dates) to search for companions.'
+      );
       setLoading(false);
       return;
     }
@@ -261,14 +308,17 @@ console.log('Axios baseURL:', apiUrl);
           destinationLng: formData.destination.coordinates[0],
           startDate: formData.startDate,
           endDate: formData.endDate,
-          interests: formData.interests,
+          interests: formData.interests.join(','), // Send as comma-separated for query
         },
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
       });
       console.log('Search response:', response.data);
       setSuggestions(response.data.suggestions);
     } catch (err) {
-      setError(err.response?.data?.message || 'Error fetching suggestions');
+      setError(
+        err.response?.data?.message ||
+          'Error fetching suggestions. Please check your network connection.'
+      );
       console.error('Fetch suggestions error:', err.response?.data || err.message);
     } finally {
       setLoading(false);
@@ -283,7 +333,10 @@ console.log('Axios baseURL:', apiUrl);
       console.log('Fetch my interests response:', response.data);
       setMyInterests(response.data.interests);
     } catch (err) {
-      setError(err.response?.data?.message || 'Error fetching my interests');
+      setError(
+        err.response?.data?.message ||
+          'Error fetching my interests. Please check your network connection.'
+      );
       console.error('Fetch my interests error:', err.response?.data || err.message);
     }
   };
@@ -300,312 +353,342 @@ console.log('Axios baseURL:', apiUrl);
       console.log('Deactivate response:', response.data);
       fetchMyInterests();
     } catch (err) {
-      setError(err.response?.data?.message || 'Error deactivating travel interest');
+      setError(
+        err.response?.data?.message ||
+          'Error deactivating travel interest. Please check your network connection.'
+      );
       console.error('Deactivate travel interest error:', err.response?.data || err.message);
     }
   };
 
   return (
-    <Container className="my-10 px-4">
+    <Container maxWidth="lg" sx={{ my: 6, px: 2 }}>
       <Button
-        variant="outline-primary"
-        className="mb-4"
+        variant="outlined"
         onClick={() => navigate('/')}
+        sx={{ mb: 2 }}
       >
         ← Back to Home
       </Button>
 
-      <Row>
-        <Col lg={8}>
-          <Card className="shadow-lg">
-            <Card.Header className="bg-primary text-white">
-              <h3 className="text-xl font-semibold">Find Travel Companions</h3>
-            </Card.Header>
-            <Card.Body>
-              {success ? (
-                <Alert variant="success">
-                  <strong>Travel Interest Posted!</strong>
-                  <p>Your travel interest has been posted successfully.</p>
-                </Alert>
-              ) : (
-                <Form onSubmit={handleSubmit}>
-                  {error && (
-                    <Alert variant="danger" className="mb-4">
-                      {error}
-                    </Alert>
-                  )}
-
-                  <Row className="mb-4">
-                    <Col md={6}>
-                      <Form.Group>
-                        <Form.Label>
-                          <FaUsers className="mr-2" /> Group Size *
-                        </Form.Label>
-                        <Form.Control
-                          type="number"
-                          name="groupSize"
-                          value={formData.groupSize}
-                          onChange={handleInputChange}
-                          min="1"
-                          required
-                        />
-                      </Form.Group>
-                    </Col>
-                    <Col md={6}>
-                      <Form.Group>
-                        <Form.Label>
-                          <FaChild className="mr-2" /> Includes Children
-                        </Form.Label>
-                        <Form.Check
-                          type="checkbox"
-                          name="hasKids"
-                          checked={formData.hasKids}
-                          onChange={handleInputChange}
-                          label="Includes children under 12 years"
-                        />
-                      </Form.Group>
-                    </Col>
-                  </Row>
-
-                  <Row className="mb-4">
-                    <Col md={6}>
-                      <Form.Group>
-                        <Form.Label>
-                          <FaCalendar className="mr-2" /> Start Date *
-                        </Form.Label>
-                        <Form.Control
-                          type="date"
-                          name="startDate"
-                          value={formData.startDate}
-                          onChange={handleInputChange}
-                          required
-                        />
-                      </Form.Group>
-                    </Col>
-                    <Col md={6}>
-                      <Form.Group>
-                        <Form.Label>
-                          <FaCalendar className="mr-2" /> End Date *
-                        </Form.Label>
-                        <Form.Control
-                          type="date"
-                          name="endDate"
-                          value={formData.endDate}
-                          onChange={handleInputChange}
-                          required
-                        />
-                      </Form.Group>
-                    </Col>
-                  </Row>
-
-                  <Form.Group className="mb-4">
-                    <Form.Label>
-                      <FaMapMarkerAlt className="mr-2" /> Departure Location *
-                    </Form.Label>
-                    <Row>
-                      <Col md={6}>
-                        <Form.Control
-                          type="number"
-                          step="any"
-                          placeholder="Latitude"
-                          name="departureLat"
-                          value={formData.departureLocation.coordinates[1]}
-                          onChange={handleInputChange}
-                          required
-                        />
-                      </Col>
-                      <Col md={6}>
-                        <Form.Control
-                          type="number"
-                          step="any"
-                          placeholder="Longitude"
-                          name="departureLng"
-                          value={formData.departureLocation.coordinates[0]}
-                          onChange={handleInputChange}
-                          required
-                        />
-                      </Col>
-                    </Row>
-                    <MapComponent
-                      initialPosition={userLocation}
-                      onLocationChange={handleDepartureLocationChange}
-                    />
-                    <Form.Text className="text-muted">
-                      Your current location is automatically detected. Click on the map to set a custom departure location.
-                    </Form.Text>
-                  </Form.Group>
-
-                  <Form.Group className="mb-4">
-                    <Form.Label>
-                      <FaMapMarkerAlt className="mr-2" /> Destination Location *
-                    </Form.Label>
-                    <Row>
-                      <Col md={6}>
-                        <Form.Control
-                          type="number"
-                          step="any"
-                          placeholder="Latitude"
-                          name="destinationLat"
-                          value={formData.destination.coordinates[1]}
-                          onChange={handleInputChange}
-                          required
-                        />
-                      </Col>
-                      <Col md={6}>
-                        <Form.Control
-                          type="number"
-                          step="any"
-                          placeholder="Longitude"
-                          name="destinationLng"
-                          value={formData.destination.coordinates[0]}
-                          onChange={handleInputChange}
-                          required
-                        />
-                      </Col>
-                    </Row>
-                    <MapComponent
-                      initialPosition={destinationLocation}
-                      onLocationChange={handleDestinationLocationChange}
-                    />
-                    <Form.Text className="text-muted">
-                      Click on the map to set your destination location.
-                    </Form.Text>
-                  </Form.Group>
-
-                  <Form.Group className="mb-4">
-                    <Form.Label>Interests (comma-separated)</Form.Label>
-                    <Form.Control
-                      type="text"
-                      name="interests"
-                      value={formData.interests}
+      <Stack direction={{ xs: 'column', lg: 'row' }} spacing={3}>
+        <Box sx={{ flex: 2 }}>
+          <Paper elevation={3} sx={{ p: 4, borderRadius: 3 }}>
+            <Typography variant="h5" color="primary" gutterBottom>
+              Find Travel Companions
+            </Typography>
+            {success && (
+              <Alert severity="success" sx={{ mb: 2 }}>
+                <strong>Travel Interest Posted!</strong>
+                <p>Your travel interest has been posted successfully.</p>
+              </Alert>
+            )}
+            {error && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {error}
+              </Alert>
+            )}
+            <form onSubmit={handleSubmit}>
+              <Stack spacing={3}>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                  <TextField
+                    label="Group Size"
+                    name="groupSize"
+                    type="number"
+                    value={formData.groupSize}
+                    onChange={handleInputChange}
+                    fullWidth
+                    required
+                    variant="outlined"
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <FaUsers />
+                        </InputAdornment>
+                      ),
+                      inputProps: { min: 1 },
+                    }}
+                  />
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        name="hasKids"
+                        checked={formData.hasKids}
+                        onChange={handleInputChange}
+                        icon={<FaChild />}
+                        checkedIcon={<FaChild />}
+                      />
+                    }
+                    label="Includes children under 12 years"
+                  />
+                </Stack>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                  <TextField
+                    label="Start Date"
+                    name="startDate"
+                    type="date"
+                    value={formData.startDate}
+                    onChange={handleInputChange}
+                    fullWidth
+                    required
+                    variant="outlined"
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <FaCalendar />
+                        </InputAdornment>
+                      ),
+                    }}
+                    InputLabelProps={{ shrink: true }}
+                  />
+                  <TextField
+                    label="End Date"
+                    name="endDate"
+                    type="date"
+                    value={formData.endDate}
+                    onChange={handleInputChange}
+                    fullWidth
+                    required
+                    variant="outlined"
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <FaCalendar />
+                        </InputAdornment>
+                      ),
+                    }}
+                    InputLabelProps={{ shrink: true }}
+                  />
+                </Stack>
+                <Box>
+                  <Typography variant="subtitle1">
+                    Departure Location *
+                  </Typography>
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                    <TextField
+                      label="Latitude"
+                      name="departureLat"
+                      type="number"
+                      step="any"
+                      value={formData.departureLocation.coordinates[1]}
                       onChange={handleInputChange}
-                      placeholder="e.g., sightseeing, adventure, relaxation"
+                      fullWidth
+                      required
+                      variant="outlined"
                     />
-                  </Form.Group>
-
-                  <Form.Group className="mb-4">
-                    <Form.Label>
-                      <FaComment className="mr-2" /> Message
-                    </Form.Label>
-                    <Form.Control
-                      as="textarea"
-                      name="message"
-                      value={formData.message}
+                    <TextField
+                      label="Longitude"
+                      name="departureLng"
+                      type="number"
+                      step="any"
+                      value={formData.departureLocation.coordinates[0]}
                       onChange={handleInputChange}
-                      rows={4}
-                      placeholder="Describe your travel plans..."
+                      fullWidth
+                      required
+                      variant="outlined"
                     />
-                  </Form.Group>
+                  </Stack>
+                  <MapComponent
+                    initialPosition={userLocation}
+                    onLocationChange={handleDepartureLocationChange}
+                  />
+                  <Typography variant="caption" color="text.secondary">
+                    Your current location is automatically detected. Click on the map to set a custom departure location.
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="subtitle1">
+                    Destination Location *
+                  </Typography>
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                    <TextField
+                      label="Latitude"
+                      name="destinationLat"
+                      type="number"
+                      step="any"
+                      value={formData.destination.coordinates[1]}
+                      onChange={handleInputChange}
+                      fullWidth
+                      required
+                      variant="outlined"
+                    />
+                    <TextField
+                      label="Longitude"
+                      name="destinationLng"
+                      type="number"
+                      step="any"
+                      value={formData.destination.coordinates[0]}
+                      onChange={handleInputChange}
+                      fullWidth
+                      required
+                      variant="outlined"
+                    />
+                  </Stack>
+                  <MapComponent
+                    initialPosition={destinationLocation}
+                    onLocationChange={handleDestinationLocationChange}
+                  />
+                  <Typography variant="caption" color="text.secondary">
+                    Click on the map to set your destination location.
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="subtitle1">Interests</Typography>
+                  <TextField
+                    size="small"
+                    placeholder="Add an interest (e.g., sightseeing)"
+                    value={interestInput}
+                    onChange={(e) => setInterestInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleInterestAdd();
+                      }
+                    }}
+                    fullWidth
+                    variant="outlined"
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <FaComment />
+                        </InputAdornment>
+                      ),
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <Button
+                            onClick={handleInterestAdd}
+                            variant="contained"
+                            color="primary"
+                            size="small"
+                            sx={{ minWidth: '32px' }}
+                          >
+                            Add
+                          </Button>
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                  <Stack direction="row" spacing={1} mt={1} flexWrap="wrap">
+                    {formData.interests.map((interest) => (
+                      <Chip
+                        key={interest}
+                        label={interest}
+                        onDelete={() => handleInterestDelete(interest)}
+                        color="primary"
+                        sx={{ mb: 1 }}
+                      />
+                    ))}
+                  </Stack>
+                </Box>
+                <TextField
+                  label="Message"
+                  name="message"
+                  value={formData.message}
+                  onChange={handleInputChange}
+                  fullWidth
+                  multiline
+                  rows={4}
+                  variant="outlined"
+                  placeholder="Describe your travel plans..."
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <FaComment />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    fullWidth
+                    disabled={submitting}
+                    startIcon={submitting ? <CircularProgress size={20} /> : null}
+                  >
+                    {submitting ? 'Posting...' : 'Post Travel Interest'}
+                  </Button>
+                  <Button
+                    variant="contained"
+                    color="success"
+                    fullWidth
+                    onClick={handleSearch}
+                    disabled={loading || !isSearchEnabled()}
+                    startIcon={loading ? <CircularProgress size={20} /> : null}
+                  >
+                    {loading ? 'Searching...' : 'Search Suggestions'}
+                  </Button>
+                </Stack>
+              </Stack>
+            </form>
+          </Paper>
+        </Box>
 
-                  <Row>
-                    <Col md={6}>
+        <Box sx={{ flex: 1 }}>
+          <Paper elevation={3} sx={{ p: 2, borderRadius: 3, mb: 2, position: 'sticky', top: 20 }}>
+            <Typography variant="h6">Your Travel Interests</Typography>
+            {myInterests.length === 0 ? (
+              <Typography>No travel interests posted yet.</Typography>
+            ) : (
+              <Stack spacing={2}>
+                {myInterests.map((interest) => (
+                  <Paper key={interest._id} elevation={1} sx={{ p: 2 }}>
+                    <Typography><strong>Group Size:</strong> {interest.groupSize}</Typography>
+                    <Typography>
+                      <strong>Dates:</strong>{' '}
+                      {new Date(interest.startDate).toLocaleDateString()} -{' '}
+                      {new Date(interest.endDate).toLocaleDateString()}
+                    </Typography>
+                    <Typography><strong>Interests:</strong> {interest.interests.join(', ')}</Typography>
+                    <Typography><strong>Status:</strong> {interest.isActive ? 'Active' : 'Inactive'}</Typography>
+                    {interest.isActive && (
                       <Button
-                        type="submit"
-                        variant="primary"
-                        className="w-full"
-                        disabled={submitting}
+                        variant="contained"
+                        color="error"
+                        size="small"
+                        onClick={() => handleDeactivate(interest._id)}
                       >
-                        {submitting ? (
-                          <>
-                            <Spinner
-                              as="span"
-                              animation="border"
-                              size="sm"
-                              className="mr-2"
-                            />
-                            Posting...
-                          </>
-                        ) : (
-                          'Post Travel Interest'
-                        )}
+                        Deactivate
                       </Button>
-                    </Col>
-                    <Col md={6}>
-                      <Button
-                        variant="success"
-                        className="w-full"
-                        onClick={handleSearch}
-                        disabled={loading || !isSearchEnabled()}
-                      >
-                        {loading ? (
-                          <>
-                            <Spinner
-                              as="span"
-                              animation="border"
-                              size="sm"
-                              className="mr-2"
-                            />
-                            Searching...
-                          </>
-                        ) : (
-                          'Search Suggestions'
-                        )}
-                      </Button>
-                    </Col>
-                  </Row>
-                </Form>
-              )}
-            </Card.Body>
-          </Card>
-        </Col>
+                    )}
+                  </Paper>
+                ))}
+              </Stack>
+            )}
+          </Paper>
 
-        <Col lg={4}>
-          <Card className="shadow-lg sticky top-5">
-            <Card.Header className="bg-gray-100">
-              <h5 className="text-lg font-semibold">Your Travel Interests</h5>
-            </Card.Header>
-            <Card.Body>
-              {myInterests.length === 0 ? (
-                <p>No travel interests posted yet.</p>
-              ) : (
-                <ul className="list-unstyled">
-                  {myInterests.map((interest) => (
-                    <li key={interest._id} className="mb-3 p-3 border rounded">
-                      <p><strong>Group Size:</strong> {interest.groupSize}</p>
-                      <p><strong>Dates:</strong> {new Date(interest.startDate).toLocaleDateString()} - {new Date(interest.endDate).toLocaleDateString()}</p>
-                      <p><strong>Interests:</strong> {interest.interests.join(', ')}</p>
-                      <p><strong>Status:</strong> {interest.isActive ? 'Active' : 'Inactive'}</p>
-                      {interest.isActive && (
-                        <Button
-                          variant="danger"
-                          size="sm"
-                          onClick={() => handleDeactivate(interest._id)}
-                        >
-                          Deactivate
-                        </Button>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Card.Body>
-          </Card>
-
-          <Card className="shadow-lg mt-4">
-            <Card.Header className="bg-gray-100">
-              <h5 className="text-lg font-semibold">Suggested Companions</h5>
-            </Card.Header>
-            <Card.Body>
-              {suggestions.length === 0 ? (
-                <p>No suggestions found. Try adjusting your search criteria.</p>
-              ) : (
-                <ul className="list-unstyled">
-                  {suggestions.map((sug) => (
-                    <li key={sug._id} className="mb-3 p-3 border rounded">
-                      <p><strong>User:</strong> {sug.user.firstName} {sug.user.lastName}</p>
-                      <p><strong>Group Size:</strong> {sug.groupSize} {sug.hasKids ? '(with kids)' : ''}</p>
-                      <p><strong>Dates:</strong> {new Date(sug.startDate).toLocaleDateString()} - {new Date(sug.endDate).toLocaleDateString()}</p>
-                      <p><strong>Interests:</strong> {sug.interests.join(', ')}</p>
-                      <p><strong>Message:</strong> {sug.message}</p>
-                      <p><strong>Contact:</strong> {sug.user.phoneNumber} | {sug.user.email}</p>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
+          <Paper elevation={3} sx={{ p: 2, borderRadius: 3, position: 'sticky', top: 20 }}>
+            <Typography variant="h6">Suggested Companions</Typography>
+            {suggestions.length === 0 ? (
+              <Typography>No suggestions found. Try adjusting your search criteria.</Typography>
+            ) : (
+              <Stack spacing={2}>
+                {suggestions.map((sug) => (
+                  <Paper key={sug._id} elevation={1} sx={{ p: 2 }}>
+                    <Typography>
+                      <strong>User:</strong> {sug.user.firstName} {sug.user.lastName}
+                    </Typography>
+                    <Typography>
+                      <strong>Group Size:</strong> {sug.groupSize}{' '}
+                      {sug.hasKids ? '(with kids)' : ''}
+                    </Typography>
+                    <Typography>
+                      <strong>Dates:</strong>{' '}
+                      {new Date(sug.startDate).toLocaleDateString()} -{' '}
+                      {new Date(sug.endDate).toLocaleDateString()}
+                    </Typography>
+                    <Typography><strong>Interests:</strong> {sug.interests.join(', ')}</Typography>
+                    <Typography><strong>Message:</strong> {sug.message}</Typography>
+                    <Typography>
+                      <strong>Contact:</strong> {sug.user.phoneNumber} | {sug.user.email}
+                    </Typography>
+                  </Paper>
+                ))}
+              </Stack>
+            )}
+          </Paper>
+        </Box>
+      </Stack>
     </Container>
   );
 };

@@ -46,6 +46,7 @@ import RTL from "layouts/rtl";
 import Profile from "layouts/profile";
 import SignIn from "layouts/authentication/sign-in";
 import SignUp from "layouts/authentication/sign-up";
+import SignOut from "layouts/authentication/sign-out"
 import BoatOwnerDetail from "./layouts/tables/data/BoatOwnerDetail";
 import ActivityLogsPage from "layouts/activity-logs";
 
@@ -83,7 +84,7 @@ const routes = [
   name: "Activity Logs",
   key: "activity-logs",
   route: "/dashboard/activity-logs",
-   icon: <MdHistory size="15px" color="inherit" />, // ✅ now it works
+   icon: <MdHistory size="15px" color="inherit" />, 
   component: ActivityLogsPage,
   noCollapse: true,
 },
@@ -127,22 +128,24 @@ const routes = [
   },
   {
     type: "collapse",
-    name: "Sign In",
-    key: "sign-in",
-    route: "/dashboard/authentication/sign-in",
+    name: "Home Page",
+    key: "Home",
+    route: "/home",
     icon: <IoIosDocument size="15px" color="inherit" />,
     component: SignIn,
     noCollapse: true,
   },
   {
-    type: "collapse",
-    name: "Sign Up",
-    key: "sign-up",
-    route: "/dashboard/authentication/sign-up",
-    icon: <IoRocketSharp size="15px" color="inherit" />,
-    component: SignUp,
-    noCollapse: true,
-  },
+  type: "collapse",
+  name: "Sign Out",
+  key: "sign-out",
+  route: "/dashboard/sign-out",
+  icon: <IoRocketSharp size="15px" color="inherit" />,
+  component: SignOut,
+  noCollapse: true,
+},
+
+
 ];
 
 export default routes;

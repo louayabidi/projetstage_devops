@@ -6,7 +6,8 @@ const {
   createTravelInterest,
   getSuggestedCompanions,
   getMyTravelInterests,
-  deactivateTravelInterest
+  deactivateTravelInterest,
+  getPredefinedInterests
 } = require('../controllers/travelInterestController');
 
 // Create a new travel interest
@@ -30,6 +31,13 @@ router.get(
   getMyTravelInterests
 );
 
+
+
+router.get(
+  '/predefined',
+  passport.authenticate('jwt', { session: false }),
+  getPredefinedInterests
+);
 // Deactivate a travel interest
 router.put(
   '/:id/deactivate',

@@ -25,7 +25,8 @@ const useUsersTableData = () => {
   const navigate = useNavigate();
   const API_BASE_URL = "http://localhost:3000";
 
-  const fetchUsers = async () => {
+  // Updated fetchUsers with correct endpoint and enhanced logging
+  const fetchUsers = async (page = 1, limit = 100) => { // Added pagination params
     try {
       const token = localStorage.getItem("token");
       if (!token) {
@@ -38,16 +39,23 @@ const useUsersTableData = () => {
       }
 
       console.log("Fetching users with token:", token.slice(0, 20) + "...");
-      const response = await axios.get(`${API_BASE_URL}/api/users`, {
+      // ✅ Changed endpoint to match your working Postman test
+      const response = await axios.get(`${API_BASE_URL}/api/auth/users`, {
         headers: { Authorization: `Bearer ${token}` },
+        params: { page, limit }, // Optional: Add pagination if backend supports it
       });
 
-      console.log("Fetched users response:", response.data);
+      console.log("Full fetched users response:", response); // Enhanced logging
+      console.log("Response data:", response.data);
 
-      const users = response.data.users || [];
+      // ✅ Enhanced handling for response structure
+      let users = response.data.users || response.data.data || response.data || [];
       if (!Array.isArray(users)) {
-        throw new Error("Expected an array of users");
+        console.warn("Response data is not an array:", users);
+        users = [];
       }
+
+      console.log("Processed users array:", users.length, "users found");
 
       const formattedRows = users.map((user) => {
         const userId = String(user._id);
@@ -100,7 +108,7 @@ const useUsersTableData = () => {
               display="flex"
               gap={1}
               alignItems="center"
-              key={`action-${userId}`} // ✅ fixed key
+              key={`action-${userId}`}
             >
               {user.role === "boat_owner" && !user.verified && !user.rejected && (
                 <>
@@ -146,7 +154,7 @@ const useUsersTableData = () => {
                   </select>
 
                   <button
-                    key={`reject-${userId}`} // stable key
+                    key={`reject-${userId}`}
                     onClick={() => handleReject(userId)}
                     disabled={!rejectionReasons[userId]?.trim()}
                     style={{
@@ -174,11 +182,19 @@ const useUsersTableData = () => {
       setLoading(false);
       console.log("Users table updated, rows:", formattedRows.length);
     } catch (err) {
-      console.error("Fetch users error:", err);
-      setError(err.response?.data?.message || `Failed to fetch users: ${err.message}`);
+      console.error("Fetch users error:", err.response || err);
+      // ✅ Enhanced error logging
+      const errorMsg = err.response?.data?.message || err.message || "Failed to fetch users";
+      setError(errorMsg);
       setLoading(false);
-      toast.error(err.response?.data?.message || "Failed to fetch users");
+      toast.error(errorMsg);
     }
+  };
+
+  // ✅ Added refetch function for manual refresh (e.g., after actions)
+  const refetch = () => {
+    setLoading(true);
+    fetchUsers();
   };
 
   const verifyBoatOwner = async (userId) => {
@@ -200,7 +216,7 @@ const useUsersTableData = () => {
 
       if (response.data.success) {
         toast.success(response.data.message);
-        await fetchUsers();
+        refetch(); // Use refetch instead of fetchUsers for consistency
       } else {
         setError(response.data.message || "Failed to verify boat owner");
         toast.error(response.data.message || "Failed to verify boat owner");
@@ -234,7 +250,7 @@ const useUsersTableData = () => {
       if (response.data.success) {
         toast.success(response.data.message);
         setRejectionReasons((prev) => ({ ...prev, [userId]: "" }));
-        await fetchUsers();
+        refetch(); 
       } else {
         throw new Error(response.data.message || "Failed to reject boat owner");
       }
@@ -262,7 +278,7 @@ const useUsersTableData = () => {
   };
 
   useEffect(() => {
-    fetchUsers();
+    fetchUsers(); 
   }, []);
 
   useEffect(() => {
@@ -275,6 +291,7 @@ const useUsersTableData = () => {
     rows,
     loading,
     error,
+    refetch, // New: For manual refresh
   };
 };
 

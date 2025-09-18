@@ -56,6 +56,20 @@ router.put(
   boatController.completeBoatInfo
 );
 
+
+router.get(
+  '/my-boat',
+  passport.authenticate('jwt', { session: false }),
+  boatController.getBoatByOwner
+);
+
+
+router.put(
+  '/my-boat',
+  passport.authenticate('jwt', { session: false }),
+  boatController.updateBoat
+);
+
 router.post(
   '/add',
   passport.authenticate('jwt', { session: false }),

@@ -18,6 +18,8 @@ exports.createTravelInterest = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Location coordinates are required' });
     }
 
+    const normalizedInterests = Array.isArray(interests) ? interests.map(i => i.toLowerCase().trim()) : [];
+
     const travelInterest = new TravelInterest({
       user: req.user._id,
       groupSize,
@@ -32,7 +34,7 @@ exports.createTravelInterest = async (req, res) => {
       },
       startDate: new Date(startDate),
       endDate: new Date(endDate),
-      interests,
+      interests: normalizedInterests,
       message
     });
 
@@ -62,7 +64,7 @@ exports.getSuggestedCompanions = async (req, res) => {
 
     const start = new Date(startDate);
     const end = new Date(endDate);
-    const interestArray = interests ? interests.split(',') : [];
+    const interestArray = interests ? interests.split(',').map(i => i.toLowerCase().trim()) : [];
     const maxDistMeters = 100000; // 100km radius, adjustable
     const earthRadius = 6378100; // meters
 
@@ -89,6 +91,16 @@ exports.getSuggestedCompanions = async (req, res) => {
     res.status(200).json({ success: true, suggestions: matches });
   } catch (error) {
     console.error('Get suggested companions error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+exports.getPredefinedInterests = (req, res) => {
+  try {
+    const interests = TravelInterest.predefinedInterests();
+    res.status(200).json({ success: true, interests });
+  } catch (error) {
+    console.error('Get predefined interests error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };

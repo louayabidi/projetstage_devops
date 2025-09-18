@@ -15,6 +15,7 @@ export default defineConfig({
       'assets': path.resolve(__dirname, './src/dashboard/assets'),
       'variables': path.resolve(__dirname, './src/dashboard/variables'),
       
+      
     }
   },
   server: {

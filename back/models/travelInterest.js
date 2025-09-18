@@ -46,7 +46,9 @@ const travelInterestSchema = new mongoose.Schema({
     required: true
   },
   interests: [{
-    type: String
+    type: String,
+    lowercase: true,
+    trim: true
   }],
   message: {
     type: String
@@ -61,5 +63,10 @@ const travelInterestSchema = new mongoose.Schema({
 
 travelInterestSchema.index({ departureLocation: '2dsphere' });
 travelInterestSchema.index({ destination: '2dsphere' });
-
+travelInterestSchema.statics.predefinedInterests = function() {
+  return [
+    'adventure', 'relaxation', 'fishing', 'snorkeling', 'sailing', 'beach_hopping',
+    'wildlife', 'cultural', 'foodie', 'party', 'family_friendly', 'solo_travel'
+  ];
+};
 module.exports = mongoose.model('TravelInterest', travelInterestSchema);

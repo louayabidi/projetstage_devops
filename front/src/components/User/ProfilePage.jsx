@@ -45,8 +45,6 @@ const EditProfilePage = () => {
   const [previewImage, setPreviewImage] = useState('');
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const navigate = useNavigate();
-
-  // Set up axios defaults with the token
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -76,13 +74,11 @@ const EditProfilePage = () => {
 if (response.data.success) {
   const updatedUser = response.data.user;
 
-  // update React state
+  
   setUser((prev) => ({ ...prev, ...updatedUser }));
 
-  // update preview
-  setPreviewImage(updatedUser.photo ? `${API_URL}${updatedUser.photo}` : '/default-avatar.jpg');
 
-  // ✅ also update localStorage so Header sees the new photo
+  setPreviewImage(updatedUser.photo ? `${API_URL}${updatedUser.photo}` : '/default-avatar.jpg');
   localStorage.setItem("user", JSON.stringify(updatedUser));
 
   console.log('Fetched user photo:', updatedUser.photo);

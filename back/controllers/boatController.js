@@ -176,6 +176,124 @@ exports.getBoat = async (req, res) => {
   }
 };
 
+
+
+
+exports.updateBoat = [
+  upload,
+  async (req, res) => {
+    try {
+      const userId = req.user._id;
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'Unauthorized: No user found',
+        });
+      }
+
+      const { name, boatType, boatCapacity, boatLicense, description, amenities } = req.body;
+
+      let parsedAmenities = [];
+      try {
+        parsedAmenities = amenities ? JSON.parse(amenities) : [];
+      } catch (e) {
+        console.error('Error parsing amenities:', e);
+      }
+
+      if (!name || !boatType || !boatCapacity || !boatLicense || !description) {
+        return res.status(400).json({
+          success: false,
+          message: 'All boat fields are required',
+        });
+      }
+
+      const photos = req.files ? req.files.map((file) => `/Uploads/boats/${file.filename}`) : [];
+
+      const updatedBoat = await Boat.findOneAndUpdate(
+        { owner: userId },
+        {
+          name,
+          boatType,
+          boatCapacity: Number(boatCapacity),
+          boatLicense,
+          description,
+          amenities: Array.isArray(parsedAmenities) ? parsedAmenities : [],
+          photos: photos.length > 0 ? photos : undefined, 
+          rejectionReason: null,
+        },
+        { new: true, runValidators: true }
+      ).lean();
+
+      if (!updatedBoat) {
+        return res.status(404).json({
+          success: false,
+          message: 'No boat found for this user',
+        });
+      }
+
+      await User.findByIdAndUpdate(
+        userId,
+        { boatInfoComplete: true, verified: false, rejected: false, rejectionReason: null },
+        { new: true }
+      );
+
+      return res.json({
+        success: true,
+        message: 'Boat updated successfully',
+        boat: updatedBoat,
+      });
+    } catch (error) {
+      console.error('Update boat error:', error);
+      if (req.files && req.files.length > 0) {
+        req.files.forEach((file) => {
+          try {
+            fs.unlinkSync(path.join(uploadDir, file.filename));
+          } catch (err) {
+            console.error('Error cleaning up file:', err);
+          }
+        });
+      }
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: error.message,
+      });
+    }
+  }
+];
+
+
+exports.getBoatByOwner = async (req, res) => {
+  try 
+  {
+    const userId = req.user._id;
+    const boat = await Boat.findOne({ owner: userId }).populate({
+
+   path : 'owner',
+    select : 'firstName lastName',
+
+    });
+
+      if(!boat) {
+        return res.status(404).json({ success: false , message: 'Boat not found for this user' });
+      }
+
+      const boatObj = boat.toObject();
+      boatObj.owner = {
+        name: boatObj.owner.firstName ? `${boatObj.owner.firstName} ${boatObj.owner.lastName || ''}`.trim() : 'Boat Owner'
+      };
+
+      res.json({ success: true, boat: boatObj });
+  } catch (error) {
+    console.error('Get boat by owner error:', error);
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+
+
+  }
+
+};
+
+
 exports.completeBoatInfo = [
   upload,
   async (req, res) => {

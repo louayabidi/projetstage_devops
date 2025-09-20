@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'; 
+import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import App from '../App';
 
@@ -9,7 +9,16 @@ describe('App routing', () => {
         <App />
       </MemoryRouter>
     );
-    expect(screen.getByText(/Discover Amazing/)).toBeInTheDocument();
+
+    // Check that the main heading is displayed
+    expect(
+      screen.getByRole('heading', { name: /Embark on Your Sea Adventure/i })
+    ).toBeInTheDocument();
+
+    // Optional: also check that the paragraph is rendered
+    expect(
+      screen.getByText(/Discover breathtaking boat rides/i)
+    ).toBeInTheDocument();
   });
 
   it('renders 404 page on unknown route', async () => { 
@@ -18,7 +27,8 @@ describe('App routing', () => {
         <App />
       </MemoryRouter>
     );
-    // Attendez et vérifiez (pour la redirection/rendu)
+
+   
     await waitFor(() => {
       expect(screen.getByText(/Page not found/i)).toBeInTheDocument();
     });

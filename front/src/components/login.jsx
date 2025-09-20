@@ -401,7 +401,7 @@ const Login = () => {
 
             <p className="text-center text-gray-300 mt-8">
               New to the crew?{' '}
-              <a href="/signup" className="text-indigo-400 font-semibold hover:text-indigo-300 transition duration-200">
+              <a href="/contact" className="text-indigo-400 font-semibold hover:text-indigo-300 transition duration-200">
                 Sign Up
               </a>
             </p>

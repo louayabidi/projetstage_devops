@@ -418,7 +418,7 @@ exports.updateBoat = [uploadBoat, async (req, res) => {
     console.log('Request user:', req.user);
     console.log('Request body:', req.body);
 
-    const userId = req.user._id; // Use _id
+    const userId = req.user._id;
     if (!userId) {
       console.log('No user ID found');
       return res.status(401).json({

@@ -4,17 +4,6 @@ import axios from 'axios';
 import { FaBell } from 'react-icons/fa';
 import { Badge } from 'react-bootstrap';
 
-const headerStyle = {
-  backgroundColor: '#026aa7', 
-  color: '#fff',
-  padding: '16px 40px', 
-  display: 'flex',
-  alignItems: 'center', 
-  justifyContent: 'space-between'
-};
-const navStyle = { display: 'flex', gap: '24px', fontSize: '1.1em' };
-const brandStyle = { fontWeight: 'bold', fontSize: '1.6em', letterSpacing: '2px' };
-
 const Header = () => {
   const navigate = useNavigate();
   const isLoggedIn = localStorage.getItem('token');
@@ -27,7 +16,7 @@ const Header = () => {
         try {
           const token = localStorage.getItem('token');
           const response = await axios.get('/api/notifications/unread-count', {
-            headers: { Authorization: `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}` },
           });
           setUnreadCount(response.data.count);
         } catch (error) {
@@ -36,7 +25,7 @@ const Header = () => {
       };
 
       fetchUnreadCount();
-      const interval = setInterval(fetchUnreadCount, 30000); // Poll every 30s
+      const interval = setInterval(fetchUnreadCount, 30000);
       return () => clearInterval(interval);
     }
   }, [isLoggedIn]);
@@ -44,12 +33,13 @@ const Header = () => {
   const handleLogout = async () => {
     try {
       const token = localStorage.getItem('token');
-      await axios.post('/api/auth/signout', {}, {
-        headers: {
-          Authorization: `Bearer ${token}`
+      await axios.post(
+        '/api/auth/signout',
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
         }
-      });
-      
+      );
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       navigate('/login');
@@ -62,79 +52,78 @@ const Header = () => {
   };
 
   return (
-    <header style={headerStyle}>
-      <div style={brandStyle}>🚤 BoatDrive</div>
-      <nav style={navStyle}>
-        <Link to='/' style={{color: "#fff", textDecoration: "none"}}>Home</Link>
-        <Link to='/boats' style={{color: "#fff", textDecoration: "none"}}>Explore Boats</Link>
-        
-
-{isLoggedIn  && (  // Or 
-  <Link to='/calendar' style={{color: "#fff", textDecoration: "none"}}>Calendar</Link>
-)}
-
+    <header className="glass-effect sticky top-0 z-50 flex items-center justify-between px-4 sm:px-6 py-3 shadow-sm">
+      <div className="font-bold text-xl sm:text-2xl text-gray-900 tracking-tight">
+        🚤 BoatDrive
+      </div>
+      <nav className="flex items-center gap-3 sm:gap-5 text-gray-800 text-sm sm:text-base">
+        <Link to="/" className="nav-link hover:text-blue-600">
+          Home
+        </Link>
+        <Link to="/boats" className="nav-link hover:text-blue-600">
+          Explore Boats
+        </Link>
+        {isLoggedIn && (
+          <Link to="/calendar" className="nav-link hover:text-blue-600">
+            Calendar
+          </Link>
+        )}
         {isLoggedIn ? (
           <>
-            <Link to='/notifications' style={{color: "#fff", textDecoration: "none", position: 'relative'}}>
-              <FaBell />
-              {unreadCount > 0 && <Badge bg="danger" pill style={{ position: 'absolute', top: '-5px', right: '-10px' }}>{unreadCount}</Badge>}
+            <Link
+              to="/notifications"
+              className="relative nav-link hover:text-blue-600"
+            >
+              <FaBell size={20} />
+              {unreadCount > 0 && (
+                <Badge
+                  bg="danger"
+                  pill
+                  className="absolute -top-2 -right-3 text-xs"
+                >
+                  {unreadCount}
+                </Badge>
+              )}
             </Link>
-           
-
-           <Link to='/profile' style={{ color: "#fff", textDecoration: "none" }}>
-  {user?.photo ? (
-    <img
-      src={`http://localhost:3000${user.photo}`}   // prepend backend URL
-      alt="Profile"
-      style={{
-        width: "32px",
-        height: "32px",
-        borderRadius: "50%",
-        objectFit: "cover",
-        border: "2px solid #fff",
-      }}
-      onError={(e) => { e.target.src = "/default-avatar.jpg"; }}
-    />
-  ) : (
-    <img
-      src="/default-avatar.jpg"
-      alt="Default Profile"
-      style={{
-        width: "32px",
-        height: "32px",
-        borderRadius: "50%",
-        objectFit: "cover",
-        border: "2px solid #fff",
-      }}
-    />
-  )}
-</Link>
-
-
-
-            <Link to='/find-companions' style={{color: "#fff", textDecoration: "none"}}> Find friends</Link>
-              
-            
-
-            <button 
+            <Link to="/profile" className="flex items-center">
+              {user?.photo ? (
+                <img
+                  src={`http://localhost:3000${user.photo}`}
+                  alt="Profile"
+                  className="w-7 h-7 rounded-full border-2 border-gray-300 object-cover hover:border-blue-500 transition-colors"
+                  onError={(e) => {
+                    e.target.src = '/default-avatar.jpg';
+                  }}
+                />
+              ) : (
+                <img
+                  src="/default-avatar.jpg"
+                  alt="Default Profile"
+                  className="w-7 h-7 rounded-full border-2 border-gray-300 object-cover hover:border-blue-500 transition-colors"
+                />
+              )}
+            </Link>
+            <Link
+              to="/find-companions"
+              className="nav-link hover:text-blue-600"
+            >
+              Find Friends
+            </Link>
+            <button
               onClick={handleLogout}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#fff',
-                cursor: 'pointer',
-                fontSize: '1em',
-                padding: 0,
-                textDecoration: 'none'
-              }}
+              className="nav-link hover:text-blue-600 bg-transparent border-none p-0"
             >
               Logout
             </button>
           </>
         ) : (
           <>
-            <Link to='/contact' style={{color: "#fff", textDecoration: "none"}}>Sign Up</Link>
-            <Link to='/login' style={{color: "#fff", textDecoration: "none"}}>Sign In</Link>
+            <Link to="/contact" className="nav-link hover:text-blue-600">
+              Sign Up
+            </Link>
+            <Link to="/login" className="nav-link hover:text-blue-600">
+              Sign In
+            </Link>
           </>
         )}
       </nav>

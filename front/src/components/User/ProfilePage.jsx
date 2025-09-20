@@ -35,6 +35,7 @@ const EditProfilePage = () => {
     newPassword: '',
     confirmNewPassword: '',
   });
+  const [boat, setBoat] = useState(null); // New state for boat data
   const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -45,6 +46,7 @@ const EditProfilePage = () => {
   const [previewImage, setPreviewImage] = useState('');
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const navigate = useNavigate();
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -52,45 +54,49 @@ const EditProfilePage = () => {
     }
   }, []);
 
-  // Fetch user profile
+  // Fetch user profile and boat info
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
         const token = localStorage.getItem('token');
-        console.log('Token from localStorage:', token);
-
         if (!token) {
-          console.log('No token found, redirecting to login');
-          navigate('/profile');
+          setError('No token found, please log in');
+          setSnackbarOpen(true);
+          navigate('/login');
           return;
         }
 
-       const response = await axios.get('/api/users/me', {
-  headers: {
-    Authorization: `Bearer ${token}`,
-  },
-});
+        // Fetch user profile
+        const userResponse = await axios.get('/api/users/me', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-if (response.data.success) {
-  const updatedUser = response.data.user;
+        if (userResponse.data.success) {
+          const updatedUser = userResponse.data.user;
+          setUser((prev) => ({ ...prev, ...updatedUser }));
+          setPreviewImage(updatedUser.photo ? `${API_URL}${updatedUser.photo}` : '/default-avatar.jpg');
+          localStorage.setItem('user', JSON.stringify(updatedUser));
 
-  
-  setUser((prev) => ({ ...prev, ...updatedUser }));
-
-
-  setPreviewImage(updatedUser.photo ? `${API_URL}${updatedUser.photo}` : '/default-avatar.jpg');
-  localStorage.setItem("user", JSON.stringify(updatedUser));
-
-  console.log('Fetched user photo:', updatedUser.photo);
-}
-
+          // Fetch boat info if user is a boat owner
+          if (updatedUser.role === 'boat_owner') {
+            try {
+              const boatResponse = await axios.get(`${API_URL}/api/boats/my-boat`, {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              if (boatResponse.data.success) {
+                setBoat(boatResponse.data.boat);
+              }
+            } catch (boatError) {
+              console.error('Boat fetch error:', boatError.response?.data);
+              // Don't set error for boat fetch failure to avoid disrupting profile view
+            }
+          }
+        }
       } catch (err) {
-        console.error('Profile fetch error details:', err.response?.data);
+        console.error('Profile fetch error:', err.response?.data);
         setError(err.response?.data?.message || 'Error fetching profile');
         setSnackbarOpen(true);
-
         if (err.response?.status === 401) {
-          console.log('401 error - removing token and redirecting');
           localStorage.removeItem('token');
           navigate('/login');
         }
@@ -154,13 +160,9 @@ if (response.data.success) {
           ...prev,
           ...updatedUser,
         }));
-
-        // prepend backend URL
         setPreviewImage(updatedUser.photo ? `${API_URL}${updatedUser.photo}` : '/default-avatar.jpg');
-
         setSuccess('Profile updated successfully!');
         setSnackbarOpen(true);
-
         setTimeout(() => {
           navigate('/profile');
         }, 1000);
@@ -203,9 +205,7 @@ if (response.data.success) {
           newPassword: passwordData.newPassword,
         },
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
 
@@ -303,6 +303,17 @@ if (response.data.success) {
               <MenuItem value="admin">Admin</MenuItem>
             </Select>
           </FormControl>
+
+          {user.role === 'boat_owner' && boat && (
+            <Button
+              variant="outlined"
+              color="primary"
+              onClick={() => navigate('/boat-info')}
+              sx={{ mt: 2 }}
+            >
+              View My Boat
+            </Button>
+          )}
 
           <Box display="flex" justifyContent="flex-end" gap={2}>
             <Button variant="outlined" onClick={() => navigate('/profile')}>

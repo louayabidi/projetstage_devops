@@ -1,27 +1,52 @@
 import React from 'react';
-
-const footerStyle = {
-  background: '#eee', color: '#222', textAlign: 'center',
-  padding: '24px 0', marginTop: '40px', fontSize: '1.1em'
-};
-const iconStyle = { margin: '0 0.5em', color: '#026aa7', textDecoration: 'none', fontSize: '1.4em' };
+import { FaTwitter, FaFacebook, FaInstagram } from 'react-icons/fa';
 
 const Footer = () => (
-  <footer style={footerStyle}>
-    <div>
-      <span>© {new Date().getFullYear()} BoatDrive. All rights reserved.</span>
-      <br/>
-      <span>
-        <a href="https://twitter.com/" target="_blank" rel="noopener noreferrer" style={iconStyle}>🐦</a>
-        <a href="https://facebook.com/" target="_blank" rel="noopener noreferrer" style={iconStyle}>📘</a>
-        <a href="https://instagram.com/" target="_blank" rel="noopener noreferrer" style={iconStyle}>📸</a>
+  <footer className="glass-effect py-4 text-center text-gray-800 mt-6">
+    <div className="flex flex-col items-center gap-3">
+      <span className="text-sm">
+        © {new Date().getFullYear()} BoatDrive. All rights reserved.
       </span>
-      <br/>
-      <span>
-        <a href="/about" style={{color: '#026aa7', textDecoration: 'none'}}>About</a> | 
-        <a href="/contact" style={{color: '#026aa7', marginLeft: '10px', textDecoration: 'none'}}>Contact</a>
-      </span>
+      <div className="flex gap-4">
+        <a
+          href="https://twitter.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-gray-800 hover:text-blue-600 transition-colors"
+          aria-label="Twitter"
+        >
+          <FaTwitter size={20} />
+        </a>
+        <a
+          href="https://facebook.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-gray-800 hover:text-blue-600 transition-colors"
+          aria-label="Facebook"
+        >
+          <FaFacebook size={20} />
+        </a>
+        <a
+          href="https://instagram.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-gray-800 hover:text-blue-600 transition-colors"
+          aria-label="Instagram"
+        >
+          <FaInstagram size={20} />
+        </a>
+      </div>
+      <div className="flex gap-3 text-sm">
+        <a href="/about" className="nav-link hover:text-blue-600">
+          About
+        </a>
+        <span>|</span>
+        <a href="/contact" className="nav-link hover:text-blue-600">
+          Contact
+        </a>
+      </div>
     </div>
   </footer>
 );
+
 export default Footer;

@@ -1,4 +1,5 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate ,useLocation  } from "react-router-dom";
+import React, { useEffect } from "react";
 import Login from "./components/login";
 import GitHubButton from "react-github-btn";
 import Registration from "./components/registration";
@@ -34,9 +35,34 @@ import ChangePassword from "./components/User/ChangePassword";
 import FindCompanions from './components/travelInterest/FindCompanions';
 import SubmitReview from './components/booking/SubmitReview';
 import ActivityLogsPage from "./dashboard/layouts/activity-logs"; 
-
+import { jwtDecode } from "jwt-decode";
 
 function App() {
+
+
+
+const location = useLocation();
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const token = searchParams.get("token");
+    const provider = searchParams.get("provider");
+
+    if (token && provider) {
+      try {
+        localStorage.setItem("token", token);
+        const user = jwtDecode(token);
+        localStorage.setItem("userId", user._id);
+
+        // ✅ Clean URL (remove query params, stay on same path)
+        window.history.replaceState({}, document.title, location.pathname);
+      } catch (err) {
+        console.error("Failed to decode JWT:", err);
+      }
+    }
+  }, [location]);
+
+
   return (
     <Routes>
       {/* Public Routes */}

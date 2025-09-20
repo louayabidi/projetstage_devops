@@ -26,15 +26,17 @@ const CompleteBoatInfo = () => {
     name: "",
     boatType: "",
     boatCapacity: "",
-    boatLicense: "",
     description: "", // New field
     amenities: [],
     photos: [],
   });
+  const [licenseFile, setLicenseFile] = useState(null);
+  const [licensePreview, setLicensePreview] = useState(null);
   const [amenityInput, setAmenityInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [previewUrls, setPreviewUrls] = useState([]);
   const fileInputRef = useRef(null);
+  const licenseInputRef = useRef(null);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -69,6 +71,14 @@ const CompleteBoatInfo = () => {
     }));
   };
 
+  const handleLicenseChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setLicenseFile(file);
+      setLicensePreview(URL.createObjectURL(file));
+    }
+  };
+
   const handleRemovePhoto = (index) => {
     const newPhotos = [...formData.photos];
     const newPreviews = [...previewUrls];
@@ -77,6 +87,12 @@ const CompleteBoatInfo = () => {
     newPreviews.splice(index, 1);
     setFormData((prev) => ({ ...prev, photos: newPhotos }));
     setPreviewUrls(newPreviews);
+  };
+
+  const handleRemoveLicense = () => {
+    if (licensePreview) URL.revokeObjectURL(licensePreview);
+    setLicenseFile(null);
+    setLicensePreview(null);
   };
 
   const handleSubmit = async (e) => {
@@ -91,16 +107,22 @@ const CompleteBoatInfo = () => {
         return;
       }
 
+      if (!licenseFile) {
+        alert("Boat license photo is required");
+        setIsLoading(false);
+        return;
+      }
+
       const formDataToSend = new FormData();
       formDataToSend.append("name", formData.name);
       formDataToSend.append("boatType", formData.boatType);
       formDataToSend.append("boatCapacity", formData.boatCapacity);
-      formDataToSend.append("boatLicense", formData.boatLicense);
       formDataToSend.append("description", formData.description); // New field
       formDataToSend.append("amenities", JSON.stringify(formData.amenities));
       formData.photos.forEach((photo) => {
         formDataToSend.append("photos", photo);
       });
+      formDataToSend.append("boatLicense", licenseFile);
 
       const response = await axios.put(
         "/api/boats/complete-info",
@@ -131,8 +153,8 @@ const CompleteBoatInfo = () => {
     formData.boatType &&
     formData.boatCapacity &&
     Number(formData.boatCapacity) >= 1 &&
-    formData.boatLicense &&
-    formData.description;
+    formData.description &&
+    licenseFile;
 
   return (
     <Container maxWidth="sm" sx={{ mt: 6, mb: 6 }}>
@@ -178,15 +200,54 @@ const CompleteBoatInfo = () => {
               required
               variant="outlined"
             />
-            <TextField
-              label="Boat License"
-              name="boatLicense"
-              value={formData.boatLicense}
-              onChange={handleChange}
-              fullWidth
-              required
-              variant="outlined"
-            />
+            <Box>
+              <Typography variant="subtitle1">Boat License Photo</Typography>
+              <Button
+                variant="outlined"
+                component="label"
+                startIcon={<CloudUploadIcon />}
+                fullWidth
+                sx={{ mb: 2 }}
+              >
+                Upload License Photo
+                <input
+                  type="file"
+                  ref={licenseInputRef}
+                  onChange={handleLicenseChange}
+                  accept="image/*"
+                  hidden
+                />
+              </Button>
+              {licensePreview && (
+                <Box sx={{ position: "relative", mb: 2 }}>
+                  <img
+                    src={licensePreview}
+                    alt="Boat license preview"
+                    style={{
+                      width: '100%',
+                      height: 'auto',
+                      borderRadius: 4,
+                    }}
+                  />
+                  <IconButton
+                    size="small"
+                    sx={{
+                      position: "absolute",
+                      top: 0,
+                      right: 0,
+                      backgroundColor: "rgba(0,0,0,0.5)",
+                      color: "white",
+                      "&:hover": {
+                        backgroundColor: "rgba(0,0,0,0.7)",
+                      },
+                    }}
+                    onClick={handleRemoveLicense}
+                  >
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+              )}
+            </Box>
             <TextField
               label="Boat Description"
               name="description"

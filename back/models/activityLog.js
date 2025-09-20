@@ -25,6 +25,7 @@ const activityLogSchema = mongoose.Schema(
         'UPDATE_LOCATION',
         'VERIFY_USER',
         'REJECT_USER',
+        'GOOGLE_LOGIN',
       ],
     },
     ipAddress: {
@@ -46,4 +47,6 @@ const activityLogSchema = mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model('ActivityLog', activityLogSchema);
+const ActivityLog = mongoose.models.ActivityLog || mongoose.model('ActivityLog', activityLogSchema);
+
+module.exports = ActivityLog;

@@ -9,14 +9,14 @@ import {
   FaStar, 
   FaChevronLeft, 
   FaCalendar, 
-  FaMoneyBillWave 
+  FaMoneyBillWave,
+  FaDownload // Add download icon
 } from 'react-icons/fa';
 import axios from 'axios';
 import './BoatDetails.css'; 
 import ImageGallery from 'react-image-gallery';
 import 'react-image-gallery/styles/css/image-gallery.css';
 
-// Set axios base URL
 axios.defaults.baseURL = 'http://localhost:3000';
 
 const BoatDetails = () => {
@@ -41,70 +41,95 @@ const BoatDetails = () => {
     navigate(`/reservation/${id}`);
   };
 
- useEffect(() => {
-  const fetchBoatDetails = async () => {
+  const handleDownloadLicense = async () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        setError('You must be logged in to view boat details');
-        setLoading(false);
+        setError('Please log in again');
         navigate('/login');
         return;
       }
 
-      // Fetch boat details
-      const boatResponse = await axios.get(`/api/boats/${id}`, {
+      const response = await axios.get(`/api/boats/${id}/license`, {
         headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob',
       });
-      console.log('Boat data:', boatResponse.data);
-      setBoat(boatResponse.data);
-      if (boatResponse.data.photos && boatResponse.data.photos.length > 0) {
-        setMainImage(boatResponse.data.photos[0]);
-      }
 
-      // Fetch boat owner reviews
-      if (boatResponse.data.owner?._id) {
-        try {
-          const reviewsResponse = await axios.get(`/api/bookings/boat-owner/${boatResponse.data.owner._id}/reviews`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          console.log('Reviews data:', reviewsResponse.data);
-          setReviews(reviewsResponse.data.reviews || []);
-          setAverageRating(reviewsResponse.data.averageRating || 0);
-        } catch (reviewErr) {
-          console.error('Failed to fetch reviews:', reviewErr.response?.data);
-          setReviews([]);
-          setAverageRating(0);
-          setReviewsFetchError(reviewErr.response?.data?.message || 'Failed to fetch reviews');
-        }
-      }
-
-      // Fetch passenger bookings
-      try {
-        const bookingsResponse = await axios.get(`/api/bookings/passenger`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        console.log('Passenger bookings:', bookingsResponse.data.bookings);
-        const filteredBookings = bookingsResponse.data.bookings.filter(
-          b => b.boat && b.boat._id && b.boat._id.toString() === id && b.status === 'confirmed'
-        );
-        console.log('Filtered user bookings:', filteredBookings);
-        setUserBookings(filteredBookings || []);
-      } catch (bookingErr) {
-        console.error('Failed to fetch bookings:', bookingErr.response?.data);
-        setUserBookings([]);
-        setError('Failed to fetch bookings. Please try again.');
-      }
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `boat_license_${id}.${response.headers['content-type'].split('/')[1]}`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
     } catch (err) {
-      console.error('Fetch error:', err);
-      setError(err.response?.data?.message || 'Failed to fetch boat details');
-    } finally {
-      setLoading(false);
+      console.error('Download license error:', err);
+      setError(err.response?.data?.message || 'Failed to download license');
     }
   };
 
-  fetchBoatDetails();
-}, [id, navigate]);
+  useEffect(() => {
+    const fetchBoatDetails = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setError('You must be logged in to view boat details');
+          setLoading(false);
+          navigate('/login');
+          return;
+        }
+
+        const boatResponse = await axios.get(`/api/boats/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        console.log('Boat data:', boatResponse.data);
+        setBoat(boatResponse.data);
+        if (boatResponse.data.photos && boatResponse.data.photos.length > 0) {
+          setMainImage(boatResponse.data.photos[0]);
+        }
+
+        if (boatResponse.data.owner?._id) {
+          try {
+            const reviewsResponse = await axios.get(`/api/bookings/boat-owner/${boatResponse.data.owner._id}/reviews`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            console.log('Reviews data:', reviewsResponse.data);
+            setReviews(reviewsResponse.data.reviews || []);
+            setAverageRating(reviewsResponse.data.averageRating || 0);
+          } catch (reviewErr) {
+            console.error('Failed to fetch reviews:', reviewErr.response?.data);
+            setReviews([]);
+            setAverageRating(0);
+            setReviewsFetchError(reviewErr.response?.data?.message || 'Failed to fetch reviews');
+          }
+        }
+
+        try {
+          const bookingsResponse = await axios.get(`/api/bookings/passenger`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          console.log('Passenger bookings:', bookingsResponse.data.bookings);
+          const filteredBookings = bookingsResponse.data.bookings.filter(
+            b => b.boat && b.boat._id && b.boat._id.toString() === id && b.status === 'confirmed'
+          );
+          console.log('Filtered user bookings:', filteredBookings);
+          setUserBookings(filteredBookings || []);
+        } catch (bookingErr) {
+          console.error('Failed to fetch bookings:', bookingErr.response?.data);
+          setUserBookings([]);
+          setError('Failed to fetch bookings. Please try again.');
+        }
+      } catch (err) {
+        console.error('Fetch error:', err);
+        setError(err.response?.data?.message || 'Failed to fetch boat details');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBoatDetails();
+  }, [id, navigate]);
 
   const handleReviewSubmit = async (e) => {
     e.preventDefault();
@@ -131,7 +156,6 @@ const BoatDetails = () => {
 
       setReviewSuccess(response.data.message);
       setReviews([...reviews, response.data.review]);
-      // Refetch reviews to update averageRating
       if (boat.owner?._id) {
         try {
           const reviewsResponse = await axios.get(`/api/bookings/boat-owner/${boat.owner._id}/reviews`, {
@@ -182,9 +206,9 @@ const BoatDetails = () => {
         <Alert variant="warning">
           <Alert.Heading>Boat not found</Alert.Heading>
           <p>The boat you're looking for doesn't exist or may have been removed.</p>
-          <Button variant="primary" onClick={() => navigate('/boats')}>
+          <p><Button variant="primary" onClick={() => navigate('/boats')}>
             Browse all boats
-          </Button>
+          </Button></p>
         </Alert>
       </Container>
     );
@@ -279,7 +303,16 @@ const BoatDetails = () => {
                               <strong>Capacity:</strong> {boat.boatCapacity} guests
                             </li>
                             <li className="mb-2">
-                              <strong>License:</strong> {boat.boatLicense || 'Not specified'}
+                              <strong>License:</strong> 
+                              {boat.boatLicense ? (
+                                <Button 
+                                  variant="link" 
+                                  onClick={handleDownloadLicense}
+                                  className="p-0 ms-2"
+                                >
+                                  <FaDownload className="me-1" /> Download License
+                                </Button>
+                              ) : 'Not specified'}
                             </li>
                           </ul>
                         </Col>

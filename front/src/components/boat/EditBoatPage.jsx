@@ -20,6 +20,8 @@ const EditBoatPage = () => {
   });
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [previewImages, setPreviewImages] = useState([]);
+  const [licenseFile, setLicenseFile] = useState(null);
+  const [licensePreview, setLicensePreview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -61,6 +63,9 @@ const EditBoatPage = () => {
             photos: boatResponse.data.boat.photos || [],
           });
           setPreviewImages(boatResponse.data.boat.photos.map((photo) => `${API_URL}${photo}`));
+          if (boatResponse.data.boat.boatLicense) {
+            setLicensePreview(`${API_URL}${boatResponse.data.boat.boatLicense}`);
+          }
         } else {
           setError(boatResponse.data.message || 'Failed to fetch boat info');
           setSnackbarOpen(true);
@@ -97,6 +102,14 @@ const EditBoatPage = () => {
     setPreviewImages(files.map((file) => URL.createObjectURL(file)));
   };
 
+  const handleLicenseChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setLicenseFile(file);
+      setLicensePreview(URL.createObjectURL(file));
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
@@ -108,10 +121,12 @@ const EditBoatPage = () => {
       formData.append('name', boat.name);
       formData.append('boatType', boat.boatType);
       formData.append('boatCapacity', boat.boatCapacity);
-      formData.append('boatLicense', boat.boatLicense);
       formData.append('description', boat.description);
       formData.append('amenities', JSON.stringify(boat.amenities));
       selectedFiles.forEach((file) => formData.append('photos', file));
+      if (licenseFile) {
+        formData.append('boatLicense', licenseFile);
+      }
 
       const response = await axios.put(`${API_URL}/api/boats/my-boat`, formData, {
         headers: {
@@ -201,15 +216,23 @@ const EditBoatPage = () => {
                 margin="normal"
                 inputProps={{ min: 1 }}
               />
-              <TextField
-                label="Boat License"
-                name="boatLicense"
-                value={boat.boatLicense}
-                onChange={handleChange}
-                fullWidth
-                required
-                margin="normal"
-              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Box display="flex" flexDirection="column" alignItems="center">
+                {licensePreview ? (
+                  <Avatar
+                    src={licensePreview}
+                    sx={{ width: 150, height: 150, mb: 2 }}
+                    onError={(e) => (e.target.src = '/default-license.jpg')}
+                  />
+                ) : (
+                  <Avatar src="/default-license.jpg" sx={{ width: 150, height: 150, mb: 2 }} />
+                )}
+                <Button variant="contained" component="label">
+                  Upload License Photo
+                  <input type="file" hidden accept="image/*" onChange={handleLicenseChange} />
+                </Button>
+              </Box>
             </Grid>
             <Grid item xs={12}>
               <TextField

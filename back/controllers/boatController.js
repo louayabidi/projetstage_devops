@@ -19,31 +19,43 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({
-  storage: storage,
-  fileFilter: (req, file, cb) => {
-    const filetypes = /jpeg|jpg|png|gif|webp/;
-    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = filetypes.test(file.mimetype);
-    if (extname && mimetype) {
-      return cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed!'));
-    }
+const fileFilter = (req, file, cb) => {
+  const filetypes = /jpeg|jpg|png|gif|webp/;
+  const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+  const mimetype = filetypes.test(file.mimetype);
+  if (extname && mimetype) {
+    return cb(null, true);
+  } else {
+    cb(new Error('Only image files are allowed!'));
   }
-}).array('photos', 10);
+};
 
-exports.createBoat = async (req, res) => {
+const uploadBoat = multer({ storage, fileFilter }).fields([
+  { name: 'photos', maxCount: 10 },
+  { name: 'boatLicense', maxCount: 1 }
+]);
+
+exports.createBoat = [uploadBoat, async (req, res) => {
   try {
     const userId = req.user._id;
-    const { name, amenities, photos, boatType, boatCapacity, boatLicense, description } = req.body;
+    const { name, amenities, boatType, boatCapacity, description } = req.body;
 
-    if (!name || !boatType || !boatCapacity || !boatLicense || !description) {
+    if (!name || !boatType || !boatCapacity || !description) {
       return res.status(400).json({
         success: false,
         message: 'All boat fields are required',
       });
     }
+
+    if (!req.files.boatLicense || req.files.boatLicense.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Boat license photo is required',
+      });
+    }
+
+    const photos = req.files.photos ? req.files.photos.map(file => `/Uploads/boats/${file.filename}`) : [];
+    const boatLicense = `/Uploads/boats/${req.files.boatLicense[0].filename}`;
 
     let boat = await Boat.findOne({ owner: userId });
 
@@ -58,7 +70,7 @@ exports.createBoat = async (req, res) => {
           boatLicense,
           description,
           amenities: Array.isArray(amenities) ? amenities : [],
-          photos: Array.isArray(photos) ? photos : [],
+          photos,
           isVerified: false, // Reset to unverified
           isRejected: false, // Clear rejection
           rejectionReason: null, // Clear reason
@@ -74,7 +86,7 @@ exports.createBoat = async (req, res) => {
         boatLicense,
         description,
         amenities: Array.isArray(amenities) ? amenities : [],
-        photos: Array.isArray(photos) ? photos : [],
+        photos,
         isVerified: false,
         isRejected: false,
         rejectionReason: null,
@@ -107,7 +119,7 @@ exports.createBoat = async (req, res) => {
       error: error.message,
     });
   }
-};
+}];
 
 exports.updateBoatLocation = async (req, res) => {
   try {
@@ -176,11 +188,8 @@ exports.getBoat = async (req, res) => {
   }
 };
 
-
-
-
 exports.updateBoat = [
-  upload,
+  uploadBoat,
   async (req, res) => {
     try {
       const userId = req.user._id;
@@ -191,7 +200,7 @@ exports.updateBoat = [
         });
       }
 
-      const { name, boatType, boatCapacity, boatLicense, description, amenities } = req.body;
+      const { name, boatType, boatCapacity, description, amenities } = req.body;
 
       let parsedAmenities = [];
       try {
@@ -200,27 +209,31 @@ exports.updateBoat = [
         console.error('Error parsing amenities:', e);
       }
 
-      if (!name || !boatType || !boatCapacity || !boatLicense || !description) {
+      if (!name || !boatType || !boatCapacity || !description) {
         return res.status(400).json({
           success: false,
           message: 'All boat fields are required',
         });
       }
 
-      const photos = req.files ? req.files.map((file) => `/Uploads/boats/${file.filename}`) : [];
+      const photos = req.files.photos ? req.files.photos.map((file) => `/Uploads/boats/${file.filename}`) : undefined;
+      const boatLicense = req.files.boatLicense ? `/Uploads/boats/${req.files.boatLicense[0].filename}` : undefined;
+
+      const updateFields = {
+        name,
+        boatType,
+        boatCapacity: Number(boatCapacity),
+        description,
+        amenities: Array.isArray(parsedAmenities) ? parsedAmenities : [],
+        rejectionReason: null,
+      };
+
+      if (photos) updateFields.photos = photos;
+      if (boatLicense) updateFields.boatLicense = boatLicense;
 
       const updatedBoat = await Boat.findOneAndUpdate(
         { owner: userId },
-        {
-          name,
-          boatType,
-          boatCapacity: Number(boatCapacity),
-          boatLicense,
-          description,
-          amenities: Array.isArray(parsedAmenities) ? parsedAmenities : [],
-          photos: photos.length > 0 ? photos : undefined, 
-          rejectionReason: null,
-        },
+        updateFields,
         { new: true, runValidators: true }
       ).lean();
 
@@ -244,8 +257,17 @@ exports.updateBoat = [
       });
     } catch (error) {
       console.error('Update boat error:', error);
-      if (req.files && req.files.length > 0) {
-        req.files.forEach((file) => {
+      if (req.files.photos && req.files.photos.length > 0) {
+        req.files.photos.forEach((file) => {
+          try {
+            fs.unlinkSync(path.join(uploadDir, file.filename));
+          } catch (err) {
+            console.error('Error cleaning up file:', err);
+          }
+        });
+      }
+      if (req.files.boatLicense && req.files.boatLicense.length > 0) {
+        req.files.boatLicense.forEach((file) => {
           try {
             fs.unlinkSync(path.join(uploadDir, file.filename));
           } catch (err) {
@@ -261,7 +283,6 @@ exports.updateBoat = [
     }
   }
 ];
-
 
 exports.getBoatByOwner = async (req, res) => {
   try 
@@ -293,9 +314,8 @@ exports.getBoatByOwner = async (req, res) => {
 
 };
 
-
 exports.completeBoatInfo = [
-  upload,
+  uploadBoat,
   async (req, res) => {
     try {
       console.log("Authenticated user:", req.user);
@@ -307,7 +327,7 @@ exports.completeBoatInfo = [
       }
 
       const userId = req.user._id;
-      const { name, boatType, boatCapacity, boatLicense, description, amenities } = req.body;
+      const { name, boatType, boatCapacity, description, amenities } = req.body;
 
       let parsedAmenities = [];
       try {
@@ -316,14 +336,22 @@ exports.completeBoatInfo = [
         console.error("Error parsing amenities:", e);
       }
 
-      if (!name || !boatType || !boatCapacity || !boatLicense || !description) {
+      if (!name || !boatType || !boatCapacity || !description) {
         return res.status(400).json({
           success: false,
           message: "All boat fields are required",
         });
       }
 
-      const photos = req.files ? req.files.map((file) => `/Uploads/boats/${file.filename}`) : [];
+      if (!req.files.boatLicense || req.files.boatLicense.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Boat license photo is required',
+        });
+      }
+
+      const photos = req.files.photos ? req.files.photos.map((file) => `/Uploads/boats/${file.filename}`) : [];
+      const boatLicense = `/Uploads/boats/${req.files.boatLicense[0].filename}`;
 
       const updatedBoat = await Boat.findOneAndUpdate(
         { owner: userId },
@@ -357,8 +385,17 @@ exports.completeBoatInfo = [
       });
     } catch (error) {
       console.error("CompleteBoatInfo error:", error);
-      if (req.files && req.files.length > 0) {
-        req.files.forEach((file) => {
+      if (req.files.photos && req.files.photos.length > 0) {
+        req.files.photos.forEach((file) => {
+          try {
+            fs.unlinkSync(path.join(uploadDir, file.filename));
+          } catch (err) {
+            console.error("Error cleaning up file:", err);
+          }
+        });
+      }
+      if (req.files.boatLicense && req.files.boatLicense.length > 0) {
+        req.files.boatLicense.forEach((file) => {
           try {
             fs.unlinkSync(path.join(uploadDir, file.filename));
           } catch (err) {
@@ -375,7 +412,7 @@ exports.completeBoatInfo = [
   },
 ];
 
-exports.updateBoat = async (req, res) => {
+exports.updateBoat = [uploadBoat, async (req, res) => {
   console.log('=== UPDATE BOAT CONTROLLER STARTED ===');
   try {
     console.log('Request user:', req.user);
@@ -390,8 +427,8 @@ exports.updateBoat = async (req, res) => {
       });
     }
 
-    const { name, amenities, photos } = req.body;
-    console.log('Extracted data:', { name, amenities, photos });
+    const { name, amenities } = req.body;
+    console.log('Extracted data:', { name, amenities });
 
     if (!name) {
       console.log('Validation failed - no name');
@@ -402,14 +439,22 @@ exports.updateBoat = async (req, res) => {
     }
 
     console.log('Searching for boat with owner:', userId);
+
+    const photos = req.files.photos ? req.files.photos.map((file) => `/Uploads/boats/${file.filename}`) : undefined;
+    const boatLicense = req.files.boatLicense ? `/Uploads/boats/${req.files.boatLicense[0].filename}` : undefined;
+
+    const updateFields = {
+      name,
+      amenities: Array.isArray(amenities) ? amenities : [],
+      isVerified: true
+    };
+
+    if (photos) updateFields.photos = photos;
+    if (boatLicense) updateFields.boatLicense = boatLicense;
+
     const updatedBoat = await Boat.findOneAndUpdate(
       { owner: userId },
-      {
-        name,
-        amenities: Array.isArray(amenities) ? amenities : [],
-        photos: Array.isArray(photos) ? photos : [],
-        isVerified: true
-      },
+      updateFields,
       { new: true, runValidators: true }
     ).lean();
 
@@ -438,13 +483,31 @@ exports.updateBoat = async (req, res) => {
     });
   } catch (error) {
     console.error('Controller error:', error);
+    if (req.files.photos && req.files.photos.length > 0) {
+      req.files.photos.forEach((file) => {
+        try {
+          fs.unlinkSync(path.join(uploadDir, file.filename));
+        } catch (err) {
+          console.error('Error cleaning up file:', err);
+        }
+      });
+    }
+    if (req.files.boatLicense && req.files.boatLicense.length > 0) {
+      req.files.boatLicense.forEach((file) => {
+        try {
+          fs.unlinkSync(path.join(uploadDir, file.filename));
+        } catch (err) {
+          console.error('Error cleaning up file:', err);
+        }
+      });
+    }
     return res.status(500).json({
       success: false,
       message: 'Internal server error',
       error: error.message
     });
   }
-};
+}];
 
 exports.deleteBoat = async (req, res) => {
   try {
@@ -452,5 +515,32 @@ exports.deleteBoat = async (req, res) => {
     res.json({ message: 'Boat deleted' });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+};
+
+
+exports.downloadBoatLicense = async (req, res) => {
+  try {
+    const boatId = req.params.boatId;
+    const boat = await Boat.findById(boatId);
+
+    if (!boat || !boat.boatLicense) {
+      return res.status(404).json({ success: false, message: 'License not found' });
+    }
+
+    // Must be an admin
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Unauthorized' });
+    }
+
+    const filePath = path.join(__dirname, '../', boat.boatLicense);
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ success: false, message: 'License file not found on server' });
+    }
+
+    res.download(filePath, `boat_license_${boatId}${path.extname(boat.boatLicense)}`);
+  } catch (error) {
+    console.error('Download license error:', error);
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 };

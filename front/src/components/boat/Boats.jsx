@@ -179,11 +179,6 @@ const Boats = () => {
                       <FaUsers className="me-2 text-primary" aria-hidden="true" />
                       <span>Up to {boat.boatCapacity} guests</span>
                     </div>
-                    {boat.boatLicense && (
-                      <div className="detail-item small text-muted text-truncate">
-                        License: {boat.boatLicense}
-                      </div>
-                    )}
                   </div>
 
                   {boat.amenities?.length > 0 && (

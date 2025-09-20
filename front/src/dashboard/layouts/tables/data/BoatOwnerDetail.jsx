@@ -13,29 +13,74 @@ import {
 } from "@mui/material";
 import VuiBox from "components/VuiBox";
 import VuiTypography from "components/VuiTypography";
+import VuiButton from "components/VuiButton"; // Added for download button
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 import Footer from "examples/Footer";
+import { toast } from "react-toastify"; // Added for error notifications
 
 function BoatOwnerDetail() {
   const { id } = useParams();
   const [userDetails, setUserDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const API_BASE_URL = "http://localhost:3000";
 
   const fetchDetails = async () => {
     try {
-      const response = await axios.get(`/api/users/${id}/details`, {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setError("Authentication token not found");
+        setLoading(false);
+        toast.error("Please log in again");
+        return;
+      }
+
+      const response = await axios.get(`${API_BASE_URL}/api/users/${id}/details`, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${token}`,
         },
       });
+      console.log("User details response:", response.data); // Log to verify data
       setUserDetails(response.data.user);
       setLoading(false);
     } catch (err) {
-      setError("Failed to fetch user details");
+      setError(err.response?.data?.message || "Failed to fetch user details");
       setLoading(false);
-      console.error(err);
+      console.error("Fetch details error:", err);
+      toast.error(err.response?.data?.message || "Failed to fetch user details");
+    }
+  };
+
+  const handleDownloadLicense = async (boatId) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        toast.error("Please log in again");
+        setError("Authentication token not found");
+        return;
+      }
+
+      const response = await axios.get(`${API_BASE_URL}/api/boats/${boatId}/license`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: "blob",
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute(
+        "download",
+        `boat_license_${boatId}.${response.headers["content-type"].split("/")[1]}`
+      );
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast.success("License downloaded successfully");
+    } catch (err) {
+      console.error("Download license error:", err);
+      toast.error(err.response?.data?.message || "Failed to download license");
     }
   };
 
@@ -185,9 +230,20 @@ function BoatOwnerDetail() {
                           <ListItemText
                             primary={<VuiTypography color="white" variant="body1">License</VuiTypography>}
                             secondary={
-                              <VuiTypography color="text" variant="body2">
-                                {userDetails.boat.boatLicense}
-                              </VuiTypography>
+                              userDetails.boat.boatLicense ? (
+                                <VuiButton
+                                  variant="gradient"
+                                  color="info"
+                                  size="small"
+                                  onClick={() => handleDownloadLicense(userDetails.boat._id)}
+                                >
+                                  Download License
+                                </VuiButton>
+                              ) : (
+                                <VuiTypography color="text" variant="body2">
+                                  Not provided
+                                </VuiTypography>
+                              )
                             }
                           />
                         </ListItem>
@@ -221,19 +277,29 @@ function BoatOwnerDetail() {
                               primary={<VuiTypography color="white" variant="body1">Photos</VuiTypography>}
                               secondary={
                                 <VuiBox display="flex" gap={1} flexWrap="wrap">
-                                  {userDetails.boat.photos.map((photo, index) => (
-                                    <img
-                                      key={index}
-                                      src={photo}
-                                      alt={`Boat photo ${index + 1}`}
-                                      style={{
-                                        width: 100,
-                                        height: 100,
-                                        objectFit: "cover",
-                                        borderRadius: 8,
-                                      }}
-                                    />
-                                  ))}
+                                  {userDetails.boat.photos
+                                    .filter(photo => photo && photo.startsWith('/Uploads/boats/')) // Filter valid paths
+                                    .map((photo, index) => (
+                                      <img
+                                        key={index}
+                                        src={`${API_BASE_URL}${photo}`}
+                                        alt={`Boat photo ${index + 1}`}
+                                        style={{
+                                          width: 100,
+                                          height: 100,
+                                          objectFit: "cover",
+                                          borderRadius: 8,
+                                        }}
+                                        onError={(e) => {
+                                          e.target.src = "/default-boat.jpg"; // Fallback image
+                                        }}
+                                      />
+                                    ))}
+                                  {userDetails.boat.photos.length === 0 && (
+                                    <VuiTypography color="text" variant="body2">
+                                      No photos available
+                                    </VuiTypography>
+                                  )}
                                 </VuiBox>
                               }
                             />

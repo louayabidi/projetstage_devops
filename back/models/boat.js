@@ -6,7 +6,7 @@ const boatSchema = new mongoose.Schema(
     name: { type: String, required: true },
     boatType: { type: String, required: true },
     boatCapacity: { type: Number, min: 1, required: true },
-    boatLicense: { type: String, unique: true, required: true },
+    boatLicense: { type: String, required: true },
     amenities: [{ type: String }],
     photos: [{ type: String }],
     description: { type: String},

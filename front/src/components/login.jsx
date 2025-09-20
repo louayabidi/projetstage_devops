@@ -1,28 +1,21 @@
-import React, { useState } from "react";
-import axios from "axios";
-import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { SectionWrapper } from "../hoc";
-import { slideIn } from "../utils/motion";
-import GoogleSvg from "../assets/icons8-google.svg";
-import FacebookSVG from "../assets/icons8-facebook.svg";
-import { FaEye, FaEyeSlash } from "react-icons/fa";
-import backgroundImage from "../assets/backgroundlogin.jpg";
-import { EarthCanvas } from "./canvas";
-import { jwtDecode } from "jwt-decode";
-import { useVisionUIController, setUser } from "../dashboard/context"; // Import context
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { SectionWrapper } from '../hoc';
+import { slideIn } from '../utils/motion';
+import GoogleSvg from '../assets/icons8-google.svg';
+import FacebookSVG from '../assets/icons8-facebook.svg';
+import { FaEye, FaEyeSlash } from 'react-icons/fa';
+import { EarthCanvas } from './canvas';
+import { jwtDecode } from 'jwt-decode';
+import { useVisionUIController, setUser } from '../dashboard/context';
 
 const Login = () => {
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
+  const [formData, setFormData] = useState({ email: '', password: '' });
   const [forgotPasswordStep, setForgotPasswordStep] = useState(0);
   const [forgotPasswordData, setForgotPasswordData] = useState({
-    email: "",
-    code: "",
-    newPassword: "",
-    confirmNewPassword: "",
+    email: '', code: '', newPassword: '', confirmNewPassword: ''
   });
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -30,40 +23,70 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const navigate = useNavigate();
-  const [, dispatch] = useVisionUIController(); // Access dispatch from context
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [, dispatch] = useVisionUIController();
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  useEffect(() => {
+    const interceptor = axios.interceptors.request.use(
+      (config) => {
+        const token = localStorage.getItem('token');
+        if (token) config.headers.Authorization = `Bearer ${token}`;
+        config.withCredentials = true;
+        return config;
+      },
+      (error) => Promise.reject(error)
+    );
+    return () => axios.interceptors.request.eject(interceptor);
+  }, []);
 
-  const handleForgotPasswordChange = (e) => {
-    setForgotPasswordData({ ...forgotPasswordData, [e.target.name]: e.target.value });
-  };
+  useEffect(() => {
+    const token = searchParams.get('token');
+    const provider = searchParams.get('provider');
+    const errorMsg = searchParams.get('error');
+
+    if (errorMsg) {
+      setError(decodeURIComponent(errorMsg));
+      setSearchParams({});
+      return;
+    }
+
+    if (token && ['google', 'facebook', 'linkedin'].includes(provider)) {
+      try {
+        const tokenPayload = jwtDecode(token);
+        localStorage.setItem('token', token);
+        localStorage.setItem('userId', tokenPayload._id);
+        setUser(dispatch, tokenPayload);
+        setSuccess(`${provider.charAt(0).toUpperCase() + provider.slice(1)} login successful! Redirecting...`);
+        setTimeout(() => {
+          navigate(tokenPayload.role === 'admin' ? '/dashboard/tables' : '/home');
+          setSearchParams({});
+        }, 1500);
+      } catch (decodeError) {
+        setError(`Invalid authentication token from ${provider}`);
+        setSearchParams({});
+      }
+    } else if (token && !provider) {
+      setError('Authentication failed: No provider specified');
+      setSearchParams({});
+    }
+  }, [searchParams, dispatch, navigate, setSearchParams]);
+
+  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleForgotPasswordChange = (e) => setForgotPasswordData({ ...forgotPasswordData, [e.target.name]: e.target.value });
 
   const handleLogin = async (event) => {
     event.preventDefault();
     setIsLoading(true);
     setError(null);
     try {
-      console.log("Sending login request with:", formData);
-      const response = await axios.post("http://localhost:3000/api/auth/signin", formData, { withCredentials: true });
-      localStorage.setItem("token", response.data.token);
-      console.log("Login successful - Response:", response.data);
-
-      const token = response.data.token;
-      const tokenPayload = jwtDecode(token);
-      console.log("Token payload:", tokenPayload);
-      localStorage.setItem("userId", tokenPayload._id);
-      setUser(dispatch, tokenPayload); // Update context with decoded user data
-
-      if (tokenPayload.role === "admin") {
-        navigate("/dashboard/tables");
-      } else {
-        navigate("/home");
-      }
+      const response = await axios.post('http://localhost:3000/api/auth/signin', formData, { withCredentials: true });
+      localStorage.setItem('token', response.data.token);
+      const tokenPayload = jwtDecode(response.data.token);
+      localStorage.setItem('userId', tokenPayload._id);
+      setUser(dispatch, tokenPayload);
+      navigate(tokenPayload.role === 'admin' ? '/dashboard/tables' : '/home');
     } catch (error) {
-      console.error("Login error:", error.response?.data || error.message);
-      setError(error.response?.data?.message || "Login failed");
+      setError(error.response?.data?.message || 'Login failed');
     } finally {
       setIsLoading(false);
     }
@@ -75,14 +98,13 @@ const Login = () => {
     setError(null);
     setSuccess(null);
     try {
-      const response = await axios.patch("http://localhost:3000/api/auth/send-forgot-password-code", {
-        email: forgotPasswordData.email,
+      const response = await axios.patch('http://localhost:3000/api/auth/send-forgot-password-code', {
+        email: forgotPasswordData.email
       });
       setSuccess(response.data.message);
       setForgotPasswordStep(2);
     } catch (error) {
-      console.error("Send forgot password code error:", error.response?.data || error.message);
-      setError(error.response?.data?.message || "Failed to send reset code");
+      setError(error.response?.data?.message || 'Failed to send reset code');
     } finally {
       setIsLoading(false);
     }
@@ -93,65 +115,64 @@ const Login = () => {
     setIsLoading(true);
     setError(null);
     setSuccess(null);
-
     if (forgotPasswordData.newPassword !== forgotPasswordData.confirmNewPassword) {
-      setError("New passwords do not match");
+      setError('New passwords do not match');
       setIsLoading(false);
       return;
     }
-
     try {
-      const response = await axios.patch("http://localhost:3000/api/auth/verify-forgot-password-code", {
+      const response = await axios.patch('http://localhost:3000/api/auth/verify-forgot-password-code', {
         email: forgotPasswordData.email,
         providedCode: forgotPasswordData.code,
-        newPassword: forgotPasswordData.newPassword,
+        newPassword: forgotPasswordData.newPassword
       });
       setSuccess(response.data.message);
-      setForgotPasswordData({ email: "", code: "", newPassword: "", confirmNewPassword: "" });
+      setForgotPasswordData({ email: '', code: '', newPassword: '', confirmNewPassword: '' });
       setForgotPasswordStep(0);
-      setTimeout(() => navigate("/login"), 1500);
+      setTimeout(() => navigate('/login'), 1500);
     } catch (error) {
-      console.error("Verify forgot password code error:", error.response?.data || error.message);
-      setError(error.response?.data?.message || "Failed to reset password");
+      setError(error.response?.data?.message || 'Failed to reset password');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleFacebookLogin = () => {
-    window.location.href = "/api/auth/facebook";
+    setError(null);
+    window.location.href = '/api/auth/facebook';
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = "/api/auth/google";
+    setError(null);
+    window.location.href = '/api/auth/google';
+  };
+
+  const handleLinkedInLogin = () => {
+    setError(null);
+    window.location.href = '/api/auth/linkedin';
   };
 
   return (
-    <div
-      className="relative flex flex-col lg:flex-row items-center justify-center min-h-screen w-full bg-cover bg-center bg-no-repeat p-4 sm:p-8"
-      style={{ backgroundImage: `url(${backgroundImage})` }}
-    >
-      <div className="absolute inset-0 bg-gradient-to-r from-blue-900/70 to-teal-700/70 z-0"></div>
-
+    <div className="relative flex flex-col lg:flex-row items-center justify-center min-h-screen w-full p-4 sm:p-8 overflow-y-auto">
       <motion.div
-        variants={slideIn("left", "tween", 0.7, 1)}
-        className="relative lg:w-1/2 w-full max-w-lg bg-white/95 backdrop-blur-xl p-8 sm:p-12 rounded-3xl shadow-2xl z-10"
+        variants={slideIn('left', 'tween', 0.7, 1)}
+        className="lg:w-1/2 w-full max-w-lg glass-effect p-8 sm:p-12 rounded-3xl shadow-2xl z-10 h-auto overflow-y-auto"
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5 }}
       >
-        <h3 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-teal-500 mb-4 text-center">
-          Set Sail with Us
+        <h3 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-teal-400 mb-4 text-center">
+          Embark on Your Journey
         </h3>
-        <p className="text-gray-700 text-lg text-center mb-8">
-          Log in to embark on your adventure!
+        <p className="text-gray-200 text-lg text-center mb-8">
+          Log in to explore the universe!
         </p>
 
         {error && (
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-red-500 text-sm text-center mb-6 p-3 bg-red-100 rounded-lg"
+            className="text-red-400 text-sm text-center mb-6 p-3 bg-red-500/20 rounded-lg"
           >
             {error}
           </motion.p>
@@ -160,141 +181,143 @@ const Login = () => {
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-green-500 text-sm text-center mb-6 p-3 bg-green-100 rounded-lg"
+            className="text-green-400 text-sm text-center mb-6 p-3 bg-green-500/20 rounded-lg"
           >
             {success}
           </motion.p>
         )}
 
         {forgotPasswordStep === 0 && (
-          <form onSubmit={handleLogin} className="flex flex-col gap-6">
+          <div className="flex flex-col gap-6">
             <label className="flex flex-col">
-              <span className="text-gray-800 font-semibold mb-2">Email</span>
+              <span className="text-gray-200 font-semibold mb-2">Email</span>
               <input
                 type="email"
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
                 required
-                className="p-4 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-4 focus:ring-blue-400 transition duration-300 placeholder-gray-400"
+                className="p-4 rounded-xl bg-white/10 border border-gray-400/30 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition duration-300 placeholder-gray-400 text-white"
                 placeholder="Enter your email"
               />
             </label>
 
             <label className="flex flex-col">
-              <span className="text-gray-800 font-semibold mb-2">Password</span>
+              <span className="text-gray-200 font-semibold mb-2">Password</span>
               <div className="relative">
                 <input
-                  type={showPassword ? "text" : "password"}
+                  type={showPassword ? 'text' : 'password'}
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
                   required
-                  className="w-full p-4 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-4 focus:ring-blue-400 transition duration-300 placeholder-gray-400"
+                  className="w-full p-4 rounded-xl bg-white/10 border border-gray-400/30 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition duration-300 placeholder-gray-400 text-white"
                   placeholder="Enter your password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute top-1/2 right-4 transform -translate-y-1/2 text-gray-600 hover:text-blue-600 transition duration-200"
+                  className="absolute top-1/2 right-4 transform -translate-y-1/2 text-gray-400 hover:text-indigo-400 transition duration-200"
                 >
                   {showPassword ? <FaEyeSlash size={22} /> : <FaEye size={22} />}
                 </button>
               </div>
             </label>
 
-            <p className="text-center text-gray-600 mt-4">
-              Forgot your password?{" "}
+            <p className="text-center text-gray-300 mt-4">
+              Forgot your password?{' '}
               <button
                 type="button"
                 onClick={() => setForgotPasswordStep(1)}
-                className="text-blue-600 font-semibold hover:text-blue-800 transition duration-200"
+                className="text-indigo-400 font-semibold hover:text-indigo-300 transition duration-200"
               >
                 Reset Password
               </button>
             </p>
 
             <motion.button
-              type="submit"
+              type="button"
+              onClick={handleLogin}
               disabled={isLoading}
-              className="bg-gradient-to-r from-blue-600 to-teal-500 text-white py-4 rounded-xl font-bold text-lg hover:from-blue-700 hover:to-teal-600 transition duration-300 shadow-md"
+              className="custom-btn bg-gradient-to-r from-indigo-500 to-teal-400 text-white py-4 rounded-xl font-bold text-lg hover:from-indigo-600 hover:to-teal-500 transition duration-300 shadow-md"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              {isLoading ? "Logging in..." : "Log In"}
+              {isLoading ? 'Logging in...' : 'Log In'}
             </motion.button>
-          </form>
+          </div>
         )}
 
         {forgotPasswordStep === 1 && (
-          <form onSubmit={handleSendForgotPasswordCode} className="flex flex-col gap-6">
+          <div className="flex flex-col gap-6">
             <label className="flex flex-col">
-              <span className="text-gray-800 font-semibold mb-2">Email</span>
+              <span className="text-gray-200 font-semibold mb-2">Email</span>
               <input
                 type="email"
                 name="email"
                 value={forgotPasswordData.email}
                 onChange={handleForgotPasswordChange}
                 required
-                className="p-4 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-4 focus:ring-blue-400 transition duration-300 placeholder-gray-400"
+                className="p-4 rounded-xl bg-white/10 border border-gray-400/30 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition duration-300 placeholder-gray-400 text-white"
                 placeholder="Enter your email"
               />
             </label>
 
             <motion.button
-              type="submit"
+              type="button"
+              onClick={handleSendForgotPasswordCode}
               disabled={isLoading}
-              className="bg-gradient-to-r from-blue-600 to-teal-500 text-white py-4 rounded-xl font-bold text-lg hover:from-blue-700 hover:to-teal-600 transition duration-300 shadow-md"
+              className="custom-btn bg-gradient-to-r from-indigo-500 to-teal-400 text-white py-4 rounded-xl font-bold text-lg hover:from-indigo-600 hover:to-teal-500 transition duration-300 shadow-md"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              {isLoading ? "Sending..." : "Send Reset Code"}
+              {isLoading ? 'Sending...' : 'Send Reset Code'}
             </motion.button>
 
-            <p className="text-center text-gray-600 mt-4">
-              Back to{" "}
+            <p className="text-center text-gray-300 mt-4">
+              Back to{' '}
               <button
                 type="button"
                 onClick={() => setForgotPasswordStep(0)}
-                className="text-blue-600 font-semibold hover:text-blue-800 transition duration-200"
+                className="text-indigo-400 font-semibold hover:text-indigo-300 transition duration-200"
               >
                 Login
               </button>
             </p>
-          </form>
+          </div>
         )}
 
         {forgotPasswordStep === 2 && (
-          <form onSubmit={handleVerifyForgotPasswordCode} className="flex flex-col gap-6">
+          <div className="flex flex-col gap-6">
             <label className="flex flex-col">
-              <span className="text-gray-800 font-semibold mb-2">Verification Code</span>
+              <span className="text-gray-200 font-semibold mb-2">Verification Code</span>
               <input
                 type="text"
                 name="code"
                 value={forgotPasswordData.code}
                 onChange={handleForgotPasswordChange}
                 required
-                className="p-4 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-4 focus:ring-blue-400 transition duration-300 placeholder-gray-400"
+                className="p-4 rounded-xl bg-white/10 border border-gray-400/30 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition duration-300 placeholder-gray-400 text-white"
                 placeholder="Enter the code from your email"
               />
             </label>
 
             <label className="flex flex-col">
-              <span className="text-gray-800 font-semibold mb-2">New Password</span>
+              <span className="text-gray-200 font-semibold mb-2">New Password</span>
               <div className="relative">
                 <input
-                  type={showNewPassword ? "text" : "password"}
+                  type={showNewPassword ? 'text' : 'password'}
                   name="newPassword"
                   value={forgotPasswordData.newPassword}
                   onChange={handleForgotPasswordChange}
                   required
-                  className="w-full p-4 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-4 focus:ring-blue-400 transition duration-300 placeholder-gray-400"
+                  className="w-full p-4 rounded-xl bg-white/10 border border-gray-400/30 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition duration-300 placeholder-gray-400 text-white"
                   placeholder="Enter new password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute top-1/2 right-4 transform -translate-y-1/2 text-gray-600 hover:text-blue-600 transition duration-200"
+                  className="absolute top-1/2 right-4 transform -translate-y-1/2 text-gray-400 hover:text-indigo-400 transition duration-200"
                 >
                   {showNewPassword ? <FaEyeSlash size={22} /> : <FaEye size={22} />}
                 </button>
@@ -302,21 +325,21 @@ const Login = () => {
             </label>
 
             <label className="flex flex-col">
-              <span className="text-gray-800 font-semibold mb-2">Confirm New Password</span>
+              <span className="text-gray-200 font-semibold mb-2">Confirm New Password</span>
               <div className="relative">
                 <input
-                  type={showNewPassword ? "text" : "password"}
+                  type={showNewPassword ? 'text' : 'password'}
                   name="confirmNewPassword"
                   value={forgotPasswordData.confirmNewPassword}
                   onChange={handleForgotPasswordChange}
                   required
-                  className="w-full p-4 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-4 focus:ring-blue-400 transition duration-300 placeholder-gray-400"
+                  className="w-full p-4 rounded-xl bg-white/10 border border-gray-400/30 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition duration-300 placeholder-gray-400 text-white"
                   placeholder="Confirm new password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute top-1/2 right-4 transform -translate-y-1/2 text-gray-600 hover:text-blue-600 transition duration-200"
+                  className="absolute top-1/2 right-4 transform -translate-y-1/2 text-gray-400 hover:text-indigo-400 transition duration-200"
                 >
                   {showNewPassword ? <FaEyeSlash size={22} /> : <FaEye size={22} />}
                 </button>
@@ -324,40 +347,41 @@ const Login = () => {
             </label>
 
             <motion.button
-              type="submit"
+              type="button"
+              onClick={handleVerifyForgotPasswordCode}
               disabled={isLoading}
-              className="bg-gradient-to-r from-blue-600 to-teal-500 text-white py-4 rounded-xl font-bold text-lg hover:from-blue-700 hover:to-teal-600 transition duration-300 shadow-md"
+              className="custom-btn bg-gradient-to-r from-indigo-500 to-teal-400 text-white py-4 rounded-xl font-bold text-lg hover:from-indigo-600 hover:to-teal-500 transition duration-300 shadow-md"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              {isLoading ? "Resetting..." : "Reset Password"}
+              {isLoading ? 'Resetting...' : 'Reset Password'}
             </motion.button>
 
-            <p className="text-center text-gray-600 mt-4">
-              Back to{" "}
+            <p className="text-center text-gray-300 mt-4">
+              Back to{' '}
               <button
                 type="button"
                 onClick={() => setForgotPasswordStep(0)}
-                className="text-blue-600 font-semibold hover:text-blue-800 transition duration-200"
+                className="text-indigo-400 font-semibold hover:text-indigo-300 transition duration-200"
               >
                 Login
               </button>
             </p>
-          </form>
+          </div>
         )}
 
         {forgotPasswordStep === 0 && (
           <>
             <div className="flex items-center justify-between my-6">
-              <hr className="w-1/3 border-gray-300" />
-              <span className="text-gray-400 font-medium">OR</span>
-              <hr className="w-1/3 border-gray-300" />
+              <hr className="w-1/3 border-gray-400/30" />
+              <span className="text-gray-300 font-medium">OR</span>
+              <hr className="w-1/3 border-gray-400/30" />
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4">
               <motion.button
                 onClick={handleFacebookLogin}
-                className="flex-1 flex items-center justify-center bg-blue-800 text-white py-3 rounded-xl hover:bg-blue-900 transition duration-300 shadow-md"
+                className="custom-btn flex-1 flex items-center justify-center bg-blue-800 text-white py-3 rounded-xl hover:bg-blue-900 transition duration-300 shadow-md"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
@@ -366,7 +390,7 @@ const Login = () => {
               </motion.button>
               <motion.button
                 onClick={handleGoogleLogin}
-                className="flex-1 flex items-center justify-center bg-red-600 text-white py-3 rounded-xl hover:bg-red-700 transition duration-300 shadow-md"
+                className="custom-btn flex-1 flex items-center justify-center bg-red-600 text-white py-3 rounded-xl hover:bg-red-700 transition duration-300 shadow-md"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
@@ -375,12 +399,9 @@ const Login = () => {
               </motion.button>
             </div>
 
-            <p className="text-center text-gray-600 mt-8">
-              New to the crew?{" "}
-              <a
-                href="/contact"
-                className="text-blue-600 font-semibold hover:text-blue-800 transition duration-200"
-              >
+            <p className="text-center text-gray-300 mt-8">
+              New to the crew?{' '}
+              <a href="/signup" className="text-indigo-400 font-semibold hover:text-indigo-300 transition duration-200">
                 Sign Up
               </a>
             </p>
@@ -389,8 +410,8 @@ const Login = () => {
       </motion.div>
 
       <motion.div
-        variants={slideIn("right", "tween", 0.2, 1)}
-        className="lg:w-1/2 w-full max-w-3xl h-[400px] sm:h-[600px] lg:h-[800px] mt-10 lg:mt-0 z-10"
+        variants={slideIn('right', 'tween', 0.2, 1)}
+        className="lg:w-1/2 w-full max-w-3xl h-[400px] sm:h-[600px] lg:h-[800px] mt-10 lg:mt-0 z-0"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
@@ -401,4 +422,4 @@ const Login = () => {
   );
 };
 
-export default SectionWrapper(Login, "login");
+export default SectionWrapper(Login, 'login');

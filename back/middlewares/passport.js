@@ -1,27 +1,23 @@
+// passport.js
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const FacebookStrategy = require('passport-facebook').Strategy;
-const { Strategy: JwtStrategy, ExtractJwt } = require('passport-jwt'); // Correct import
+const { Strategy: JwtStrategy, ExtractJwt } = require('passport-jwt');
 const User = require('../models/usersModel');
-
+const ActivityLog = require('../models/activityLog');
 const jwt = require('jsonwebtoken');
-
 const bcrypt = require('bcrypt');
-const mongoose = require ('mongoose')
-// JWT Strategy
 
 const jwtOptions = {
   jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
   secretOrKey: process.env.TOKEN_SECRET,
-  passReqToCallback: true
+  passReqToCallback: true,
 };
-
 
 passport.use(
   new JwtStrategy(jwtOptions, async (req, jwtPayload, done) => {
     try {
       console.log('JWT Payload received:', jwtPayload);
-      console.log('Verifying with TOKEN_SECRET:', process.env.TOKEN_SECRET);
       if (!jwtPayload._id) {
         console.log('No _id in JWT payload');
         return done(null, false);
@@ -40,44 +36,73 @@ passport.use(
   })
 );
 
-
-// Google Strategy
 passport.use(
   new GoogleStrategy(
     {
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
       callbackURL: '/api/auth/google/callback',
+      passReqToCallback: true, // Add this to pass req to callback
     },
-    async (accessToken, refreshToken, profile, done) => {
+    async (req, accessToken, refreshToken, profile, done) => {
       try {
-        let user = await User.findOne({ email: profile.emails[0].value });
+        console.log('Google Profile:', profile);
+        const email = profile.emails?.[0]?.value;
+        if (!email || !profile.emails[0].verified) {
+          console.error('Google Strategy: No verified email found');
+          return done(new Error('No verified email found'), null);
+        }
+
+        let user = await User.findOne({ email });
 
         if (!user) {
+          const defaultRole = 'passenger';
+          const hashedPassword = await bcrypt.hash(Math.random().toString(36).substring(7), 12);
+
           user = new User({
-            email: profile.emails[0].value,
+            email,
+            firstName: profile.name.givenName || 'Google',
+            lastName: profile.name.familyName || 'User',
+            photo: profile.photos?.[0]?.value || '',
+            age: null,
+            role: defaultRole,
             verified: true,
-            password: await bcrypt.hash('password', 10), // Generate a hashed password
-            age: 20,
-            firstName: profile.name.givenName,
-            lastName: profile.name.familyName || 'Unknown',
+            boatInfoComplete: true, // Passenger doesn't need boat info
+            password: hashedPassword,
           });
           await user.save();
+          console.log('New Google user created:', { email: user.email, role: user.role });
+        } else {
+          if (!user.photo && profile.photos?.[0]?.value) {
+            user.photo = profile.photos[0].value;
+            await user.save();
+          }
+          console.log('Existing Google user found:', { email: user.email, role: user.role });
         }
+
+        const activityLog = new ActivityLog({
+          userId: user._id,
+          action: 'LOGIN',
+          ipAddress: req.ip || 'Unknown',
+          userAgent: req.get('User-Agent') || 'Unknown',
+        });
+        await activityLog.save();
+
         const token = jwt.sign(
-          { userId: user._id, email: user.email, verified: user.verified },
+          { _id: user._id, email: user.email, role: user.role },
           process.env.TOKEN_SECRET,
           { expiresIn: '8h' }
         );
+
         return done(null, { user, token });
       } catch (error) {
+        console.error('Google Strategy error:', error.message);
         return done(error, null);
       }
     }
   )
 );
 
-// Facebook Strategy
 passport.use(
   new FacebookStrategy(
     {
@@ -85,12 +110,18 @@ passport.use(
       clientSecret: process.env.FACEBOOK_APP_SECRET,
       callbackURL: '/api/auth/facebook/callback',
       profileFields: ['id', 'emails', 'name', 'birthday', 'location'],
+      passReqToCallback: true, // Add this for consistency
     },
-    async (accessToken, refreshToken, profile, done) => {
+    async (req, accessToken, refreshToken, profile, done) => {
       try {
         console.log('Facebook Profile:', profile);
+        const email = profile.emails?.[0]?.value;
+        if (!email) {
+          console.error('Facebook Strategy: No email found');
+          return done(new Error('No email found'), null);
+        }
 
-        let user = await User.findOne({ email: profile.emails[0]?.value });
+        let user = await User.findOne({ email });
 
         let age = null;
         if (profile._json.birthday) {
@@ -99,48 +130,55 @@ passport.use(
           age = today.getFullYear() - birthDate.getFullYear();
         }
 
-        const now = Math.floor(Date.now() / 1000);
-        const firstName = profile.name.givenName.toLowerCase();
-        const lastName = profile.name.familyName.toUpperCase();
-        const generatedPassword = `${now}${firstName}${lastName}`;
-
-        const hashedPassword = await bcrypt.hash(generatedPassword, 10);
+        const defaultRole = 'passenger';
+        const hashedPassword = await bcrypt.hash(Math.random().toString(36).substring(7), 12);
 
         if (!user) {
-          console.log('Creating new user...');
           user = new User({
-            firstName: profile.name.givenName,
-            lastName: profile.name.familyName,
-            email: profile.emails[0]?.value,
-            age: age || 18,
-            password: hashedPassword,
+            firstName: profile.name.givenName || 'Facebook',
+            lastName: profile.name.familyName || 'User',
+            email,
+            age: age || null,
+            role: defaultRole,
             verified: true,
+            boatInfoComplete: true,
+            password: hashedPassword,
           });
           await user.save();
+          console.log('New Facebook user created:', { email: user.email, role: user.role });
         } else {
-          user.password = hashedPassword;
-          await user.save();
+          if (!user.photo && profile.photos?.[0]?.value) {
+            user.photo = profile.photos[0].value;
+            await user.save();
+          }
+          console.log('Existing Facebook user found:', { email: user.email, role: user.role });
         }
 
+        const activityLog = new ActivityLog({
+          userId: user._id,
+          action: 'LOGIN',
+          ipAddress: req.ip || 'Unknown',
+          userAgent: req.get('User-Agent') || 'Unknown',
+        });
+        await activityLog.save();
+
         const token = jwt.sign(
-          { userId: user._id, email: user.email, verified: user.verified },
+          { _id: user._id, email: user.email, role: user.role },
           process.env.TOKEN_SECRET,
           { expiresIn: '8h' }
         );
 
-        console.log('Generated Password (Before Hashing):', generatedPassword); // Debug
         return done(null, { user, token });
       } catch (error) {
-        console.error('Error in FacebookStrategy:', error);
-        done(error, null);
+        console.error('Facebook Strategy error:', error.message);
+        return done(error, null);
       }
     }
   )
 );
 
-// Serialize and Deserialize User
 passport.serializeUser((user, done) => {
-  done(null, user.id || user.user.id); // Handle both user and { user, token } objects
+  done(null, user.user ? user.user._id : user.id);
 });
 
 passport.deserializeUser(async (id, done) => {

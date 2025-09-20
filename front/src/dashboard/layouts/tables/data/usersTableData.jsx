@@ -25,8 +25,37 @@ const useUsersTableData = () => {
   const navigate = useNavigate();
   const API_BASE_URL = "http://localhost:3000";
 
-  // Updated fetchUsers with correct endpoint and enhanced logging
-  const fetchUsers = async (page = 1, limit = 100) => { // Added pagination params
+  const handleDownloadLicense = async (boatId) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        toast.error("Please log in again");
+        navigate("/login");
+        return;
+      }
+
+      // Make a request to the download endpoint
+      const response = await axios.get(`${API_BASE_URL}/api/boats/${boatId}/license`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob', // Important for handling binary file data
+      });
+
+      // Create a URL for the file and trigger download
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `boat_license_${boatId}.${response.headers['content-type'].split('/')[1]}`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Download license error:", err);
+      toast.error(err.response?.data?.message || "Failed to download license");
+    }
+  };
+
+  const fetchUsers = async (page = 1, limit = 100) => {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
@@ -39,16 +68,14 @@ const useUsersTableData = () => {
       }
 
       console.log("Fetching users with token:", token.slice(0, 20) + "...");
-      // ✅ Changed endpoint to match your working Postman test
       const response = await axios.get(`${API_BASE_URL}/api/auth/users`, {
         headers: { Authorization: `Bearer ${token}` },
-        params: { page, limit }, // Optional: Add pagination if backend supports it
+        params: { page, limit },
       });
 
-      console.log("Full fetched users response:", response); // Enhanced logging
+      console.log("Full fetched users response:", response);
       console.log("Response data:", response.data);
 
-      // ✅ Enhanced handling for response structure
       let users = response.data.users || response.data.data || response.data || [];
       if (!Array.isArray(users)) {
         console.warn("Response data is not an array:", users);
@@ -86,11 +113,30 @@ const useUsersTableData = () => {
             </VuiTypography>
           ),
           boatInfo: (
-            <VuiTypography variant="button" color="white" fontWeight="medium">
-              {user.role === "boat_owner" && user.boatInfoComplete
-                ? user.boat?.name || "Boat Info Available"
-                : "N/A"}
-            </VuiTypography>
+            <VuiBox>
+              {user.role === "boat_owner" && user.boatInfoComplete ? (
+                <>
+                  <VuiTypography variant="button" color="white" fontWeight="medium">
+                    {user.boat?.name || "Boat Info Available"}
+                  </VuiTypography>
+                  {user.boat?._id && (
+                    <VuiButton
+                      variant="gradient"
+                      color="info"
+                      size="small"
+                      onClick={() => handleDownloadLicense(user.boat._id)}
+                      sx={{ ml: 1 }}
+                    >
+                      Download License
+                    </VuiButton>
+                  )}
+                </>
+              ) : (
+                <VuiTypography variant="button" color="white" fontWeight="medium">
+                  N/A
+                </VuiTypography>
+              )}
+            </VuiBox>
           ),
           status: (
             <VuiBadge
@@ -183,7 +229,6 @@ const useUsersTableData = () => {
       console.log("Users table updated, rows:", formattedRows.length);
     } catch (err) {
       console.error("Fetch users error:", err.response || err);
-      // ✅ Enhanced error logging
       const errorMsg = err.response?.data?.message || err.message || "Failed to fetch users";
       setError(errorMsg);
       setLoading(false);
@@ -191,7 +236,6 @@ const useUsersTableData = () => {
     }
   };
 
-  // ✅ Added refetch function for manual refresh (e.g., after actions)
   const refetch = () => {
     setLoading(true);
     fetchUsers();
@@ -216,7 +260,7 @@ const useUsersTableData = () => {
 
       if (response.data.success) {
         toast.success(response.data.message);
-        refetch(); // Use refetch instead of fetchUsers for consistency
+        refetch();
       } else {
         setError(response.data.message || "Failed to verify boat owner");
         toast.error(response.data.message || "Failed to verify boat owner");
@@ -250,7 +294,7 @@ const useUsersTableData = () => {
       if (response.data.success) {
         toast.success(response.data.message);
         setRejectionReasons((prev) => ({ ...prev, [userId]: "" }));
-        refetch(); 
+        refetch();
       } else {
         throw new Error(response.data.message || "Failed to reject boat owner");
       }
@@ -278,7 +322,7 @@ const useUsersTableData = () => {
   };
 
   useEffect(() => {
-    fetchUsers(); 
+    fetchUsers();
   }, []);
 
   useEffect(() => {
@@ -291,7 +335,7 @@ const useUsersTableData = () => {
     rows,
     loading,
     error,
-    refetch, // New: For manual refresh
+    refetch,
   };
 };
 

@@ -2,11 +2,20 @@
 const nodemailer = require('nodemailer');
 
 function getTransport() {
+  console.log('Environment variables:', {
+    email: process.env.NODE_CODE_SENDING_EMAIL_ADDRESS,
+    pass: process.env.NODE_CODE_SENDING_EMAIL_PASSWORD,
+    from: process.env.EMAIL_FROM,
+  });
+
   if (process.env.NODE_ENV === 'test') {
     return nodemailer.createTransport({
-      jsonTransport: true, // logs emails instead of sending
+      jsonTransport: true,
     });
   } else {
+    if (!process.env.NODE_CODE_SENDING_EMAIL_ADDRESS || !process.env.NODE_CODE_SENDING_EMAIL_PASSWORD) {
+      throw new Error('Missing email credentials in environment variables');
+    }
     const transport = nodemailer.createTransport({
       service: 'gmail',
       auth: {
@@ -27,4 +36,4 @@ function getTransport() {
   }
 }
 
-module.exports = getTransport;
+module.exports = getTransport();

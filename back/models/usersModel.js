@@ -77,6 +77,16 @@ const userSchema = new mongoose.Schema({
     type: Boolean, 
     default: false 
   },
+
+
+verificationCode: { type: String, select: false },
+  verificationCodeValidation: { type: Date, select: false },
+
+  // ✅ Add these for forgot password
+  forgotPasswordCode: { type: String, select: false },
+  forgotPasswordCodeValidation: { type: Date, select: false },
+
+
   bookingRequests: [{ 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'Booking' 

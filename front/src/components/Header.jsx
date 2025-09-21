@@ -63,12 +63,17 @@ const Header = () => {
         <Link to="/boats" className="nav-link hover:text-blue-600">
           Explore Boats
         </Link>
-        {isLoggedIn && (
+        {isLoggedIn && user?.role === 'admin' && (
+          <Link to="/dashboard/tables" className="nav-link hover:text-blue-600">
+            Dashboard
+          </Link>
+        )}
+        {isLoggedIn && user?.role === 'boat_owner' && (
           <Link to="/calendar" className="nav-link hover:text-blue-600">
             Calendar
           </Link>
         )}
-        {isLoggedIn ? (
+        {isLoggedIn && (
           <>
             <Link
               to="/notifications"
@@ -103,12 +108,11 @@ const Header = () => {
                 />
               )}
             </Link>
-            <Link
-              to="/find-companions"
-              className="nav-link hover:text-blue-600"
-            >
-              Find Friends
-            </Link>
+            {isLoggedIn && user?.role === 'passenger' && (
+              <Link to="/find-companions" className="nav-link hover:text-blue-600">
+                Find Friends
+              </Link>
+            )}
             <button
               onClick={handleLogout}
               className="nav-link hover:text-blue-600 bg-transparent border-none p-0"
@@ -116,7 +120,8 @@ const Header = () => {
               Logout
             </button>
           </>
-        ) : (
+        )}
+        {!isLoggedIn && (
           <>
             <Link to="/contact" className="nav-link hover:text-blue-600">
               Sign Up

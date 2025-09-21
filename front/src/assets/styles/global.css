@@ -1,0 +1,62 @@
+
+  :root {
+    --font-size-base: 16px;
+  }
+
+  body {
+    font-size: var(--font-size-base);
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  /* Responsive typography */
+  h1 {
+    font-size: clamp(1.5rem, 5vw, 2.5rem);
+  }
+
+  h2 {
+    font-size: clamp(1.25rem, 4vw, 2rem);
+  }
+
+  p, a, button {
+    font-size: clamp(0.875rem, 2.5vw, 1rem);
+  }
+
+  /* Responsive container */
+  .container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+
+  /* Responsive images */
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Flexbox for responsive layouts */
+  .flex-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  /* Media queries for specific breakpoints */
+  @media (max-width: 768px) {
+    .container {
+      padding: 0 0.5rem;
+    }
+
+    .flex-container {
+      flex-direction: column;
+    }
+  }
+
+  @media (min-width: 992px) {
+    .container {
+      padding: 0 1.5rem;
+    }
+  }

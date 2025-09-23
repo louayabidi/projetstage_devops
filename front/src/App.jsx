@@ -20,6 +20,7 @@ const BookingOffers = lazy(() => import("./components/booking/BookingOffers"));
 const BookingDetails = lazy(() => import("./components/booking/BookingDetails"));
 const ReservationPage = lazy(() => import("./components/booking/ReservationPage"));
 const Notifications = lazy(() => import("./components/booking/Notifications"));
+const NearbyBoats = lazy(() => import('./components/boat/NearByBoats.jsx'));
 const Dashboard = lazy(() => import("./dashboard/layouts/dashboard"));
 const Tables = lazy(() => import("./dashboard/layouts/tables"));
 const Billing = lazy(() => import("./dashboard/layouts/billing"));
@@ -36,6 +37,7 @@ const ChangePassword = lazy(() => import("./components/User/ChangePassword"));
 const FindCompanions = lazy(() => import("./components/travelInterest/FindCompanions"));
 const SubmitReview = lazy(() => import("./components/booking/SubmitReview"));
 const ActivityLogsPage = lazy(() => import("./dashboard/layouts/activity-logs"));
+
 
 function App() {
   const location = useLocation();
@@ -69,6 +71,7 @@ function App() {
         <Route path="/boats" element={<Layout><Boats /></Layout>} />
         <Route path="/boat-info" element={<Layout><BoatInfoPage /></Layout>} />
         <Route path="/boats/:id" element={<Layout><BoatDetails /></Layout>} />
+        <Route path="/nearby-boats" element={<Layout><NearbyBoats /></Layout>} />
         <Route path="/change-password" element={<ChangePassword />} />
         <Route path="*" element={<Layout><NotFound /></Layout>} />
 

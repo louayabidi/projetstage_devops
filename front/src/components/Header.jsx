@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { FaBell } from 'react-icons/fa';
+import { FaBell, FaBars, FaTimes } from 'react-icons/fa';
 import { Badge } from 'react-bootstrap';
 
 const Header = () => {
@@ -9,6 +9,7 @@ const Header = () => {
   const isLoggedIn = localStorage.getItem('token');
   const user = isLoggedIn ? JSON.parse(localStorage.getItem('user')) : null;
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -51,25 +52,55 @@ const Header = () => {
     }
   };
 
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
   return (
-    <header className="glass-effect sticky top-0 z-50 flex items-center justify-between px-4 sm:px-6 py-3 shadow-sm">
+    <header className="glass-effect sticky top-0 z-50 flex items-center justify-between px-4 sm:px-6 py-3 shadow-sm bg-white/80 backdrop-blur-md">
       <div className="font-bold text-xl sm:text-2xl text-gray-900 tracking-tight">
         🚤 BoatDrive
       </div>
-      <nav className="flex items-center gap-3 sm:gap-5 text-gray-800 text-sm sm:text-base">
-        <Link to="/" className="nav-link hover:text-blue-600">
+      <button
+        className="sm:hidden text-gray-800 focus:outline-none"
+        onClick={toggleMobileMenu}
+      >
+        {isMobileMenuOpen ? <FaTimes size={24} /> : <FaBars size={24} />}
+      </button>
+      <nav
+        className={`${
+          isMobileMenuOpen ? 'flex' : 'hidden'
+        } sm:flex flex-col sm:flex-row items-center gap-3 sm:gap-5 text-gray-800 text-sm sm:text-base absolute sm:static top-full left-0 right-0 bg-white/80 sm:bg-transparent backdrop-blur-md sm:backdrop-blur-none p-4 sm:p-0 shadow-sm sm:shadow-none`}
+      >
+        <Link
+          to="/"
+          className="nav-link hover:text-blue-600"
+          onClick={() => setIsMobileMenuOpen(false)}
+        >
           Home
         </Link>
-        <Link to="/boats" className="nav-link hover:text-blue-600">
+        <Link
+          to="/boats"
+          className="nav-link hover:text-blue-600"
+          onClick={() => setIsMobileMenuOpen(false)}
+        >
           Explore Boats
         </Link>
         {isLoggedIn && user?.role === 'admin' && (
-          <Link to="/dashboard/tables" className="nav-link hover:text-blue-600">
+          <Link
+            to="/dashboard/tables"
+            className="nav-link hover:text-blue-600"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
             Dashboard
           </Link>
         )}
         {isLoggedIn && user?.role === 'boat_owner' && (
-          <Link to="/calendar" className="nav-link hover:text-blue-600">
+          <Link
+            to="/calendar"
+            className="nav-link hover:text-blue-600"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
             Calendar
           </Link>
         )}
@@ -78,6 +109,7 @@ const Header = () => {
             <Link
               to="/notifications"
               className="relative nav-link hover:text-blue-600"
+              onClick={() => setIsMobileMenuOpen(false)}
             >
               <FaBell size={20} />
               {unreadCount > 0 && (
@@ -90,7 +122,11 @@ const Header = () => {
                 </Badge>
               )}
             </Link>
-            <Link to="/profile" className="flex items-center">
+            <Link
+              to="/profile"
+              className="flex items-center"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
               {user?.photo ? (
                 <img
                   src={`http://localhost:3000${user.photo}`}
@@ -109,13 +145,17 @@ const Header = () => {
               )}
             </Link>
             {isLoggedIn && user?.role === 'passenger' && (
-              <Link to="/find-companions" className="nav-link hover:text-blue-600">
+              <Link
+                to="/find-companions"
+                className="nav-link hover:text-blue-600"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
                 Find Friends
               </Link>
             )}
             <button
               onClick={handleLogout}
-              className="nav-link hover:text-blue-600 bg-transparent border-none p-0"
+              className="nav-link hover:text-blue-600 bg-transparent border-none p-0 text-left"
             >
               Logout
             </button>
@@ -123,10 +163,18 @@ const Header = () => {
         )}
         {!isLoggedIn && (
           <>
-            <Link to="/contact" className="nav-link hover:text-blue-600">
+            <Link
+              to="/contact"
+              className="nav-link hover:text-blue-600"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
               Sign Up
             </Link>
-            <Link to="/login" className="nav-link hover:text-blue-600">
+            <Link
+              to="/login"
+              className="nav-link hover:text-blue-600"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
               Sign In
             </Link>
           </>

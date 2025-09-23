@@ -53,14 +53,24 @@ const Login = () => {
     if (token && ['google', 'facebook', 'linkedin'].includes(provider)) {
       try {
         const tokenPayload = jwtDecode(token);
-        localStorage.setItem('token', token);
-        localStorage.setItem('userId', tokenPayload._id);
-        setUser(dispatch, tokenPayload);
-        setSuccess(`${provider.charAt(0).toUpperCase() + provider.slice(1)} login successful! Redirecting...`);
-        setTimeout(() => {
-          navigate(tokenPayload.role === 'admin' ? '/dashboard/tables' : '/home');
+        // Fetch user data to store in localStorage
+        axios.get(`http://localhost:3000/api/auth/users/${tokenPayload._id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }).then(response => {
+          const user = response.data.user || response.data;
+          localStorage.setItem('token', token);
+          localStorage.setItem('userId', tokenPayload._id);
+          localStorage.setItem('user', JSON.stringify(user));
+          setUser(dispatch, { ...tokenPayload, ...user });
+          setSuccess(`${provider.charAt(0).toUpperCase() + provider.slice(1)} login successful! Redirecting...`);
+          setTimeout(() => {
+            navigate(tokenPayload.role === 'admin' ? '/dashboard/tables' : '/home');
+            setSearchParams({});
+          }, 1500);
+        }).catch(err => {
+          setError(`Failed to fetch user data: ${err.response?.data?.message || err.message}`);
           setSearchParams({});
-        }, 1500);
+        });
       } catch (decodeError) {
         setError(`Invalid authentication token from ${provider}`);
         setSearchParams({});
@@ -81,9 +91,10 @@ const Login = () => {
     try {
       const response = await axios.post('http://localhost:3000/api/auth/signin', formData, { withCredentials: true });
       localStorage.setItem('token', response.data.token);
+      localStorage.setItem('userId', response.data.user._id);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
       const tokenPayload = jwtDecode(response.data.token);
-      localStorage.setItem('userId', tokenPayload._id);
-      setUser(dispatch, tokenPayload);
+      setUser(dispatch, { ...tokenPayload, ...response.data.user });
       navigate(tokenPayload.role === 'admin' ? '/dashboard/tables' : '/home');
     } catch (error) {
       setError(error.response?.data?.message || 'Login failed');

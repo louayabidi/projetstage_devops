@@ -16,7 +16,7 @@ const useUsersTableData = () => {
     { name: "status", align: "center" },
     { name: "action", align: "center" },
   ]);
-  const [users, setUsers] = useState([]); // 🔥 store raw users, not JSX
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState({});
@@ -72,7 +72,7 @@ const useUsersTableData = () => {
         usersData = [];
       }
 
-      setUsers(usersData); // 🔥 store raw data
+      setUsers(usersData);
       setLoading(false);
     } catch (err) {
       const errorMsg = err.response?.data?.message || err.message || "Failed to fetch users";
@@ -146,6 +146,38 @@ const useUsersTableData = () => {
     } catch (err) {
       setError(err.response?.data?.message || "Failed to reject boat owner");
       toast.error(err.response?.data?.message || "Failed to reject boat owner");
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [userId]: false }));
+    }
+  };
+
+  const promoteToAdmin = async (userId) => {
+    try {
+      setActionLoading((prev) => ({ ...prev, [userId]: true }));
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setError("Authentication token not found");
+        toast.error("Authentication token not found. Please log in again.");
+        navigate("/login");
+        return;
+      }
+
+      const response = await axios.put(
+        `${API_BASE_URL}/api/auth/${userId}/promote`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.data.success) {
+        toast.success(response.data.message);
+        refetch();
+      } else {
+        setError(response.data.message || "Failed to promote user to admin");
+        toast.error(response.data.message || "Failed to promote user to admin");
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to promote user to admin");
+      toast.error(err.response?.data?.message || "Failed to promote user to admin");
     } finally {
       setActionLoading((prev) => ({ ...prev, [userId]: false }));
     }
@@ -252,7 +284,7 @@ const useUsersTableData = () => {
               <button
                 key={`reject-${userId}`}
                 onClick={() => handleReject(userId)}
-                disabled={!rejectionReasons[userId]} // 🔥 now works reactively
+                disabled={!rejectionReasons[userId]}
                 style={{
                   padding: "8px 16px",
                   backgroundColor: "#d32f2f",
@@ -266,6 +298,17 @@ const useUsersTableData = () => {
                 {actionLoading[userId] ? "Rejecting..." : "Reject"}
               </button>
             </>
+          )}
+          {user.role !== "admin" && (
+            <VuiButton
+              variant="gradient"
+              color="success"
+              size="small"
+              onClick={() => promoteToAdmin(userId)}
+              disabled={actionLoading[userId]}
+            >
+              {actionLoading[userId] ? "Promoting..." : "Promote to Admin"}
+            </VuiButton>
           )}
         </VuiBox>
       ),

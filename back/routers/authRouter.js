@@ -197,6 +197,7 @@ router.patch('/verify-forgot-password-code', authController.verifyForgotPassword
 router.put('/:id/verify', passport.authenticate('jwt', { session: false }), authController.verifyBoatOwner);
 router.put('/:id/reject', passport.authenticate('jwt', { session: false }), authController.rejectBoatOwner);
 router.get('/verify-hash', authController.verifyHash);
+router.put('/:id/promote', passport.authenticate('jwt', { session: false }), authController.promoteToAdmin);
 router.get('/activity-logs', identifier, authController.getActivityLogs);
 router.get('/users/:id/details', async (req, res) => {
   try {

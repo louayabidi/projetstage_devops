@@ -1,65 +1,79 @@
-// src/components/boat/Boats.js
+// src/components/boat/NearbyBoats.js
 import React, { useEffect, useState } from 'react';
 import { Container, Row, Col, Card, Spinner, Alert, Button } from 'react-bootstrap';
-import { FaShip, FaUsers, FaCheckCircle, FaRegClock, FaSearch, FaFilter } from 'react-icons/fa';
+import { FaShip, FaUsers, FaCheckCircle, FaRegClock } from 'react-icons/fa';
 import axios from 'axios';
-import './Boats.css';
 import { useNavigate } from 'react-router-dom';
+import { useGeolocated } from 'react-geolocated';
+import './Boats.css'; // Reuse the same CSS as Boats.js for consistency
 import "bootstrap/dist/css/bootstrap.min.css";
 
-const Boats = () => {
-  const [boats, setBoats] = useState([]);
+const NearbyBoats = () => {
+  const [nearbyBoats, setNearbyBoats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState('all');
+  const [locationError, setLocationError] = useState(null);
   const navigate = useNavigate();
+  const API_BASE_URL = "http://localhost:3000";
+
+  const { coords, isGeolocationAvailable, isGeolocationEnabled } = useGeolocated({
+    positionOptions: { enableHighAccuracy: true },
+    userDecisionTimeout: 5000,
+  });
 
   useEffect(() => {
-    const fetchBoats = async () => {
-      try {
-        const response = await axios.get('/api/boats');
-        setBoats(Array.isArray(response?.data) ? response.data : []);
-      } catch (err) {
-        setError(err.response?.data?.message || 'Failed to fetch boats');
-        setBoats([]);
-      } finally {
+    const fetchNearbyBoats = async () => {
+      if (!isGeolocationAvailable) {
+        setLocationError('Geolocation is not supported by your browser');
         setLoading(false);
+        return;
+      }
+      if (!isGeolocationEnabled) {
+        setLocationError('Please enable location services');
+        setLoading(false);
+        return;
+      }
+      if (coords) {
+        try {
+          const token = localStorage.getItem('token'); // Assuming token is stored
+          const response = await axios.post(
+            `${API_BASE_URL}/api/boats/nearby-boats`,
+            {
+              latitude: coords.latitude,
+              longitude: coords.longitude,
+              maxDistance: 10000, // 10km
+            },
+            {
+              headers: { Authorization: `Bearer ${token}` }, // Include token for auth
+            }
+          );
+          setNearbyBoats(response.data.boats || []);
+        } catch (err) {
+          setError(err.response?.data?.message || 'Failed to fetch nearby boats');
+        } finally {
+          setLoading(false);
+        }
       }
     };
 
-    fetchBoats();
-  }, []);
-
-  const filteredBoats = boats.filter(boat => {
-    const name = boat?.name?.toLowerCase() || '';
-    const type = boat?.boatType?.toLowerCase() || '';
-    const description = boat?.description?.toLowerCase() || '';
-    return (
-      (name.includes(searchTerm.toLowerCase()) ||
-       type.includes(searchTerm.toLowerCase()) ||
-       description.includes(searchTerm.toLowerCase())) &&
-      (filterType === 'all' || boat?.boatType === filterType)
-    );
-  });
-
-  const boatTypes = [...new Set(boats.map(boat => boat?.boatType).filter(Boolean))];
+    fetchNearbyBoats();
+  }, [coords, isGeolocationAvailable, isGeolocationEnabled]);
 
   if (loading) {
     return (
       <Container className="text-center my-5 py-5">
-        <Spinner animation="border" variant="primary" role="status" aria-label="Loading luxury vessels" />
-        <h4 className="mt-3 text-primary">Discovering Amazing Boats...</h4>
+        <Spinner animation="border" variant="primary" role="status" aria-label="Loading nearby boats" />
+        <h4 className="mt-3 text-primary">Finding Nearby Boats...</h4>
       </Container>
     );
   }
 
-  if (error) {
+  if (error || locationError) {
     return (
       <Container className="my-5">
         <Alert variant="danger" className="text-center shadow-sm">
-          <Alert.Heading>⛔ Connection Error</Alert.Heading>
-          <p>We couldn't reach our marina. {error}</p>
+          <Alert.Heading>⛔ Error</Alert.Heading>
+          <p>{locationError || error}</p>
           <div className="d-flex justify-content-center gap-3">
             <Button variant="outline-primary" onClick={() => window.location.reload()}>
               Refresh
@@ -76,64 +90,18 @@ const Boats = () => {
   return (
     <Container fluid className="boats-container my-5 px-4">
       <div className="text-center mb-5">
-        <h1 className="display-4 mb-3">Explore Luxury Vessels</h1>
-        <p className="lead text-muted">Find your perfect boat for an unforgettable experience</p>
-        <Button
-          variant="outline-primary"
-          onClick={() => navigate('/nearby-boats')}
-          className="mt-3"
-          aria-label="Find boats near your location"
-        >
-          Find Boats Near Me
-        </Button>
+        <h1 className="display-4 mb-3">Find Nearby Boats</h1>
+        <p className="lead text-muted">Discover boats closest to your location for a quick ride</p>
       </div>
 
-      {/* Search and Filter Section */}
-      <div className="search-filter mb-5 p-4 bg-white rounded shadow-sm">
-        <Row className="align-items-center g-3">
-          <Col xs={12} md={7}>
-            <div className="search-box position-relative">
-              <FaSearch className="search-icon text-primary" aria-hidden="true" />
-              <input
-                type="text"
-                placeholder="Search by boat name, type, or description..."
-                className="form-control ps-5 py-2 border-primary"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                aria-label="Search boats"
-              />
-            </div>
-          </Col>
-          <Col xs={12} md={5}>
-            <div className="filter-select position-relative">
-              <FaFilter className="filter-icon text-primary" aria-hidden="true" />
-              <select
-                className="form-select py-2 ps-5 border-primary"
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                aria-label="Filter by boat type"
-              >
-                <option value="all">All Categories</option>
-                {boatTypes.map(type => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </Col>
-        </Row>
-      </div>
-
-      {/* Boats Listing */}
-      {filteredBoats.length === 0 ? (
+      {nearbyBoats.length === 0 ? (
         <Alert variant="info" className="text-center shadow-sm">
-          <h4>No matching boats found</h4>
-          <p>Try adjusting your search or filter criteria</p>
+          <h4>No nearby boats found</h4>
+          <p>Try adjusting your location or check back later.</p>
         </Alert>
       ) : (
         <Row xs={1} md={2} className="g-4">
-          {filteredBoats.map(boat => (
+          {nearbyBoats.map(boat => (
             <Col key={boat._id}>
               <Card
                 className="boat-card shadow-sm h-100"
@@ -158,21 +126,15 @@ const Boats = () => {
                       <FaShip size={50} className="text-primary" aria-hidden="true" />
                     </div>
                   )}
-                  {boat.isVerified && (
-                    <span className="verified-badge">
-                      <FaCheckCircle className="me-1" aria-hidden="true" /> Verified
-                    </span>
-                  )}
+                  <span className="verified-badge">
+                    <FaCheckCircle className="me-1" aria-hidden="true" /> Verified
+                  </span>
                 </div>
 
                 <Card.Body className="d-flex flex-column">
                   <Card.Title className="d-flex justify-content-between align-items-center mb-2">
                     <span className="boat-name text-truncate">{boat.name}</span>
-                    {!boat.isVerified && (
-                      <span className="text-warning small">
-                        <FaRegClock className="me-1" aria-hidden="true" /> Pending
-                      </span>
-                    )}
+                    <span className="text-muted small">{boat.distance.toFixed(2)} km away</span>
                   </Card.Title>
 
                   <Card.Subtitle className="mb-3 text-primary text-truncate">
@@ -212,12 +174,12 @@ const Boats = () => {
                 <Card.Footer className="bg-white border-top-0 text-center">
                   <Button
                     variant="primary"
-                    href={`/boats/${boat._id}`}
+                    href={`/reservation/${boat._id}?quickRide=true`}
                     className="px-4 py-2 rounded-pill w-100"
                     onClick={(e) => e.stopPropagation()}
-                    aria-label={`Explore ${boat.name}`}
+                    aria-label={`Book quick ride on ${boat.name}`}
                   >
-                    Explore This Vessel
+                    Book Quick Ride
                   </Button>
                 </Card.Footer>
               </Card>
@@ -229,4 +191,4 @@ const Boats = () => {
   );
 };
 
-export default Boats;
+export default NearbyBoats;

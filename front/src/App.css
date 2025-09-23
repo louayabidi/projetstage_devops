@@ -1,23 +1,119 @@
+/* src/app.css */
 #root {
+  width: 100%;
   max-width: 1280px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 1rem; /* Reduced padding for smaller screens */
   text-align: center;
 }
 
+@media (min-width: 640px) {
+  #root {
+    padding: 2rem;
+  }
+}
 
+body, html {
+  height: 100%;
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.5;
+}
 
+@media (max-width: 640px) {
+  body {
+    font-size: 14px;
+  }
+}
+
+/* General container for pages */
+.container {
+  width: 100%;
+  max-width: 1280px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+  .container {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+/* Glass effect for header and other components */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Navigation link styles */
+.nav-link {
+  transition: color 0.2s;
+}
+
+/* Card styles for reusable components */
+.card {
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 640px) {
+  .card {
+    padding: 1rem;
+  }
+}
+
+/* Button styles */
+button, .btn {
+  padding: 0.75rem 1.5rem;
+  background-color: #646cff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+button:hover, .btn:hover {
+  background-color: #535bf2;
+}
+
+/* Form input styles */
+input, select, textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+/* Logo styles (if used) */
 .logo {
-  height: 6em;
-  padding: 1.5em;
+  height: 5em;
+  padding: 1em;
   will-change: filter;
   transition: filter 300ms;
 }
+
 .logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
+  filter: drop-shadow(0 0 1.5em #646cffaa);
 }
+
 .logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+  filter: drop-shadow(0 0 1.5em #61dafbaa);
 }
 
 @keyframes logo-spin {
@@ -35,94 +131,7 @@
   }
 }
 
-.card {
-  padding: 2em;
-}
-
 .read-the-docs {
   color: #888;
 }
-body, html {
-  
-  height: 100%;
-  margin: 0;
-}
 
-.app-container {
-  background: url('./assets/back.jpg') no-repeat center center fixed;
-  background-size: cover;
-  height: 100vh;  /* Ensure it takes up full viewport height */
-  width: 100%;    /* Ensure it takes up full width */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-.login-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 40%;
-    width: 100%;
-}
-
-.login-form {
-    background: rgba(255, 255, 255, 0.8); /* Semi-transparent background */
-    padding: 2rem;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    width: 100%;
-    max-width: 400px; /* Limit form width */
-}
-
-.login-form h1 {
-    text-align: center;
-    margin-bottom: 1.5rem;
-}
-
-.login-form input {
-    width: 100%;
-    padding: 0.75rem;
-    margin-bottom: 1rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
-
-.login-options {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-}
-
-.login-options label {
-    margin-left: 0.5rem;
-}
-
-.login-form button {
-    width: 100%;
-    padding: 0.75rem;
-    background-color: #646cff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.login-form button:hover {
-    background-color: #535bf2;
-}
-
-.login-form span {
-    display: block;
-    text-align: center;
-    margin-top: 1rem;
-}
-
-.login-form a {
-    color: #646cff;
-    text-decoration: none;
-}
-
-.login-form a:hover {
-    text-decoration: underline;
-}

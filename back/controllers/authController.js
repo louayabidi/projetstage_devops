@@ -1,4 +1,3 @@
-
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const User = require('../models/usersModel');
@@ -64,16 +63,15 @@ exports.signup = async (req, res) => {
     // Remove password from response
     savedUser.password = undefined;
 
-
-     // Log SIGNUP action
+    // Log SIGNUP action
     const activityLog = new ActivityLog({
-       userId: savedUser._id,
-       //userId: savedUser._id, 
+      userId: savedUser._id,
       action: 'SIGNUP',
       ipAddress: req.ip || req.connection.remoteAddress,
       userAgent: req.get('User-Agent') || 'Unknown',
     });
     await activityLog.save();
+
     // Generate JWT
     const token = jwt.sign(
       { _id: savedUser._id, email: savedUser.email, role: savedUser.role },
@@ -116,16 +114,14 @@ exports.signin = async (req, res) => {
       return res.status(401).json({ success: false, message: 'Incorrect password' });
     }
 
-
-// Log LOGIN action
+    // Log LOGIN action
     const activityLog = new ActivityLog({
-    userId: existingUser._id, 
+      userId: existingUser._id,
       action: 'LOGIN',
       ipAddress: req.ip || req.connection.remoteAddress,
       userAgent: req.get('User-Agent') || 'Unknown',
     });
     await activityLog.save();
-
 
     existingUser.password = undefined;
     const token = jwt.sign(
@@ -551,6 +547,81 @@ exports.rejectBoatOwner = async (req, res) => {
   }
 };
 
+exports.promoteToAdmin = async (req, res) => {
+  try {
+    console.log('PromoteToAdmin endpoint hit:', {
+      user: req.user,
+      params: req.params,
+    });
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Access denied: Admins only' });
+    }
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid user ID' });
+    }
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    if (user.role === 'admin') {
+      return res.status(400).json({ success: false, message: 'User is already an admin' });
+    }
+
+    user.role = 'admin';
+    user.verified = true;
+    user.boatInfoComplete = true; 
+    await user.save();
+
+    // Log PROMOTE_ADMIN action
+    const activityLog = new ActivityLog({
+      userId: req.user._id,
+      action: 'PROMOTE_ADMIN',
+      ipAddress: req.ip || req.connection.remoteAddress,
+      userAgent: req.get('User-Agent') || 'Unknown',
+    });
+    await activityLog.save();
+
+    console.log('User promoted to admin:', { email: user.email, role: user.role });
+
+    try {
+      const htmlContent = `
+        <h1>Account Promotion</h1>
+        <p>Congratulations! Your account has been promoted to Administrator.</p>
+        <p>You now have access to additional features and responsibilities.</p>
+        <p>If you have any questions, please contact support.</p>
+      `;
+      await transport.sendMail({
+        from: process.env.EMAIL_FROM || 'no-reply@yourapp.com',
+        to: user.email,
+        subject: 'Account Promoted to Administrator',
+        html: htmlContent,
+      });
+      console.log('Promotion email sent to:', user.email);
+    } catch (emailError) {
+      console.error('Failed to send promotion email:', {
+        error: emailError.message,
+        stack: emailError.stack,
+        email: user.email,
+      });
+      return res.status(500).json({
+        success: false,
+        message: 'User promoted, but failed to send email',
+        error: emailError.message,
+      });
+    }
+
+    res.status(200).json({ success: true, message: 'User promoted to admin successfully', user });
+  } catch (error) {
+    console.error('Promote to admin error:', {
+      message: error.message,
+      stack: error.stack,
+    });
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+};
+
 exports.fixAllPasswords = async (req, res) => {
   try {
     const users = await User.find({});
@@ -686,12 +757,9 @@ exports.getAllUsers = async (req, res) => {
 
 exports.getActivityLogs = async (req, res) => {
   try {
-
-
-   console.log("➡️ getActivityLogs called");
+    console.log("➡️ getActivityLogs called");
     console.log("req.user:", req.user);
 
-    // Validate req.user
     if (!req.user || !req.user._id) {
       return res.status(401).json({ success: false, message: 'Unauthorized: No user provided' });
     }
@@ -712,12 +780,12 @@ exports.getActivityLogs = async (req, res) => {
         .populate({
           path: 'userId',
           select: 'email firstName lastName',
-          match: { _id: { $exists: true } }, // Ensure populated user exists
+          match: { _id: { $exists: true } },
         })
         .populate({
           path: 'bookingId',
           select: 'reservationType',
-          match: { reservationType: { $exists: true } }, // Ensure booking has reservationType
+          match: { reservationType: { $exists: true } },
         })
         .sort({ createdAt: -1 });
     } else {
@@ -735,7 +803,6 @@ exports.getActivityLogs = async (req, res) => {
         .sort({ createdAt: -1 });
     }
 
-    // Filter out logs with null populated fields
     logs = logs.filter(log => log.userId !== null);
 
     res.status(200).json({

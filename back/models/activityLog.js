@@ -26,6 +26,8 @@ const activityLogSchema = mongoose.Schema(
         'VERIFY_USER',
         'REJECT_USER',
         'GOOGLE_LOGIN',
+        'PROMOTE_ADMIN',
+        'SEARCH_NEARBY_BOATS',
       ],
     },
     ipAddress: {

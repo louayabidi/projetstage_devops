@@ -544,3 +544,75 @@ exports.downloadBoatLicense = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 };
+
+
+exports.getNearbyBoats = async (req, res) => {
+  try {
+    // Verify user role
+    if (req.user.role !== 'passenger') {
+      return res.status(403).json({ success: false, message: 'Unauthorized: Passenger role required' });
+    }
+
+    const { latitude, longitude, maxDistance = 10000 } = req.body; // maxDistance in meters (default 10km)
+    if (!latitude || !longitude) {
+      return res.status(400).json({ success: false, message: 'Passenger location (latitude, longitude) is required' });
+    }
+
+    const nearbyBoats = await Boat.aggregate([
+      {
+        $geoNear: {
+          near: { type: 'Point', coordinates: [parseFloat(longitude), parseFloat(latitude)] },
+          distanceField: 'distance', // Adds a 'distance' field in meters
+          maxDistance: parseInt(maxDistance),
+          spherical: true,
+          query: {
+            isVerified: true,
+            isRejected: false,
+            lastLocationUpdate: { $gte: new Date(Date.now() - 15 * 60 * 1000) } // Last 15 minutes
+          }
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'owner',
+          foreignField: '_id',
+          as: 'owner'
+        }
+      },
+      { $unwind: '$owner' },
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+          boatType: 1,
+          boatCapacity: 1,
+          location: 1,
+          distance: { $divide: ['$distance', 1000] }, // Convert to km
+          'owner.firstName': 1,
+          'owner.lastName': 1
+        }
+      },
+      { $sort: { distance: 1 } } // Sort by closest first
+    ]);
+
+    if (!nearbyBoats.length) {
+      return res.status(404).json({ success: false, message: 'No nearby boats found' });
+    }
+
+    // Log activity (optional)
+    const ActivityLog = require('../models/activityLog');
+    const activityLog = new ActivityLog({
+      userId: req.user._id,
+      action: 'SEARCH_NEARBY_BOATS',
+      ipAddress: req.ip || req.connection.remoteAddress,
+      userAgent: req.get('User-Agent') || 'Unknown',
+    });
+    await activityLog.save();
+
+    res.status(200).json({ success: true, boats: nearbyBoats });
+  } catch (error) {
+    console.error('Get nearby boats error:', error);
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+};
